@@ -34,6 +34,14 @@ def test_phase3_migration_upgrades_and_downgrades_existing_schema(
         "reliability_states",
         "risk_states",
         "controlled_signals",
+        "portfolio_targets",
+        "rebalance_events",
+        "trades",
+        "portfolio_snapshots",
+        "feedback_updates",
+        "backtests",
+        "backtest_returns",
+        "backtest_metrics",
     }.issubset(inspector.get_table_names())
     assert command.current(config) is None
 
@@ -43,5 +51,7 @@ def test_phase3_migration_upgrades_and_downgrades_existing_schema(
     assert "volatility_states" not in remaining
     assert "regime_states" not in remaining
     assert "controlled_signals" not in remaining
+    assert "portfolio_targets" not in remaining
+    assert "backtests" not in remaining
     assert {"portfolios", "holdings", "evaluations"}.issubset(remaining)
     get_settings.cache_clear()

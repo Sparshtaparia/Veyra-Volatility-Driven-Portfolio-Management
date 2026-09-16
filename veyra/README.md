@@ -4,6 +4,7 @@ Veyra is a backend system designed for volatility-driven portfolio management. I
 
 ## Architecture
 - **API**: FastAPI
+- **Quant terminal**: React + TypeScript + Tailwind + Plotly
 - **Database**: PostgreSQL 15 via SQLAlchemy 2.x and Alembic
 - **Validation**: Pydantic v2
 - **Testing**: pytest
@@ -36,6 +37,19 @@ Veyra is a backend system designed for volatility-driven portfolio management. I
    ```bash
    uvicorn backend.main:app --reload
    ```
+
+6. Start the quant terminal:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+Or start PostgreSQL, the migrated API, and the production frontend together:
+
+```bash
+docker compose up --build
+```
 
 ## Testing
 
@@ -103,12 +117,22 @@ curl http://localhost:8000/api/v1/evaluations/EVALUATION_UUID/risk
 curl http://localhost:8000/api/v1/evaluations/EVALUATION_UUID/explainability
 ```
 
+## Phase 5 portfolio control
+
+Phase 5 completes the core loop with CSV/XLSX/manual ingestion, a
+regime-and-risk exposure controller, inverse-volatility convex optimization,
+paper rebalancing, deterministic state feedback, chronological walk-forward
+backtesting, seven architecture ablations, and performance attribution.
+
+See [the Phase 5 architecture and deployment guide](docs/phase5.md).
+
 ## Phase Roadmap
 
 - **Phase 1: Foundation** - API, database, domain models.
 - **Phase 2: Market data + features** - OHLCV data and technical indicators.
 - **Phase 3: GJR-GARCH + volatility regime** - Conditional volatility modeling.
 - **Phase 4: Fama-French + alpha** - Rolling betas and multi-factor ranking.
-- **Phase 5: Risk + reliability + control** - State-coupled signal regulation.
-- **Phase 6: Optimization + rebalance** - Target allocation calculation.
-- **Phase 7: Execution + feedback** - Paper trading and adaptive threshold updates.
+- **Phase 5: Final core** - Optimization, paper rebalance, feedback, backtesting,
+  ablations, attribution, and the quant terminal.
+
+Live broker execution and trade authorization remain intentionally out of scope.

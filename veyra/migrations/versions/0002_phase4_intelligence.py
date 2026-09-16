@@ -17,7 +17,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def _identity_columns(*, portfolio: bool = False) -> list[sa.Column]:
-    columns = [
+    columns: list[sa.Column] = [
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("evaluation_id", postgresql.UUID(as_uuid=True), nullable=False),
     ]
