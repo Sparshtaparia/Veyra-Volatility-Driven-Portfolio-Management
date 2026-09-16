@@ -49,6 +49,13 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     """URL prefix for all API routes."""
 
+    frontend_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    """Comma-separated browser origins allowed to call this API."""
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.frontend_origins.split(",") if origin.strip()]
+
     # ------------------------------------------------------------------
     # Business defaults
     # ------------------------------------------------------------------

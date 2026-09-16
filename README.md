@@ -4,7 +4,7 @@ Veyra is a backend system designed for volatility-driven portfolio management. I
 
 ## Architecture
 - **API**: FastAPI
-- **Database**: PostgreSQL 15 via SQLAlchemy 2.x and Alembic
+- **Database**: Supabase PostgreSQL via SQLAlchemy 2.x and Alembic
 - **Validation**: Pydantic v2
 - **Testing**: pytest
 
@@ -15,10 +15,10 @@ Veyra is a backend system designed for volatility-driven portfolio management. I
    cp .env.example .env
    ```
 
-2. Start the database:
-   ```bash
-   docker compose up -d
-   ```
+2. In Supabase, create a project and copy its transaction-pooler URI into
+   `DATABASE_URL` (include `?sslmode=require`). Copy the project URL and anon
+   key into both the root `.env` and `frontend/.env`; see each `.env.example`.
+   The frontend uses Supabase Auth and sends its access token to this API.
 
 3. Install dependencies:
    ```bash
