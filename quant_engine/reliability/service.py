@@ -1,6 +1,6 @@
 import math
 
-from quant_engine.reliability.models import ReliabilityOutput, ReliabilityState
+from quant_engine.reliability.models import ReliabilityLevel, ReliabilityOutput
 
 
 class ReliabilityService:
@@ -29,11 +29,11 @@ class ReliabilityService:
 
         # Discretize into states for the control operator
         if score >= 0.75:
-            state = ReliabilityState.HIGH
+            state = ReliabilityLevel.HIGH
         elif score >= 0.40:
-            state = ReliabilityState.MODERATE
+            state = ReliabilityLevel.MODERATE
         else:
-            state = ReliabilityState.LOW
+            state = ReliabilityLevel.LOW
 
         return ReliabilityOutput(
             ticker=ticker,

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from backend.dependencies.auth import CurrentUser, require_auth
 from backend.dependencies.db import get_db
+from backend.dependencies.factor_data import get_factor_data_provider
 from backend.dependencies.market_data import get_market_data_provider
 from backend.exceptions import (
     EvaluationNotFoundError,
@@ -17,15 +18,17 @@ from backend.exceptions import (
     VolatilityEvaluationNotFoundError,
     VolatilityPersistenceError,
 )
+from backend.schemas.signals import SignalEvaluationResponse
 from backend.schemas.volatility import (
     MarketRegimeResponse,
     VolatilityEvaluationRequest,
     VolatilityEvaluationResponse,
 )
 from backend.services.volatility_evaluation_service import VolatilityEvaluationService
-from backend.services.signal_evaluation_service import SignalEvaluationService
+from backend.services.signal_decision_evaluation_service import SignalEvaluationService
 from backend.schemas.signal_control import SignalDecisionEvaluationRequest, SignalDecisionEvaluationResponse, AssetDecisionResponse
 from quant_engine.data.provider import MarketDataProvider
+from quant_engine.factors.provider import FactorDataProvider
 from quant_engine.regimes.exceptions import (
     InsufficientCoverageError,
     InsufficientStressHistoryError,
@@ -70,7 +73,7 @@ def _map_error(exc: Exception) -> HTTPException:
 
 @router.post(
     "/portfolios/{portfolio_id}/signals/evaluate",
-    response_model=SignalDecisionEvaluationResponse,
+    response_model=SignalDecisionEvaluationResponse | SignalEvaluationResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def evaluate_signals(
@@ -78,10 +81,27 @@ def evaluate_signals(
     request: SignalDecisionEvaluationRequest,
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
+    factor_provider: FactorDataProvider = Depends(get_factor_data_provider),
     user: CurrentUser = Depends(require_auth),
 ):
     try:
-        result = _signal_service(db, provider).evaluate(portfolio_id, request.as_of_date, evaluation_id=request.evaluation_id)
+        try:
+            result = _signal_service(db, provider).evaluate(
+                portfolio_id,
+                request.as_of_date,
+                evaluation_id=request.evaluation_id,
+            )
+        except PortfolioNotFoundError:
+            # The persisted Phase 4 endpoint originally owned this route. Keep
+            # it as a compatibility fallback while the newer decision flow is
+            # available for portfolios using the expanded pipeline.
+            from backend.api import signals as legacy_signals
+
+            return legacy_signals._service(db, provider, factor_provider).evaluate(
+                portfolio_id,
+                request.as_of_date,
+                evaluation_id=request.evaluation_id,
+            )
         return SignalDecisionEvaluationResponse(
             evaluation_id=result.evaluation_id,
             portfolio_id=result.portfolio_id,

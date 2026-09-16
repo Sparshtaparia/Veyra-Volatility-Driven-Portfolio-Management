@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     """Browser origins allowed to call the API."""
 
     trusted_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
+    api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("VEYRA_API_KEY", "API_KEY"),
+    )
     structured_json_logs: bool = True
 
     market_data_provider: str = "yfinance"
@@ -198,10 +202,18 @@ class Settings(BaseSettings):
         if self.app_env == "production":
             if not self.database_url.startswith(("postgresql://", "postgresql+psycopg2://")):
                 raise ValueError("production requires a PostgreSQL DATABASE_URL")
-            if not self.supabase_url or not self.supabase_jwks_url:
-                raise ValueError("production requires SUPABASE_URL and SUPABASE_JWKS_URL")
-            if not self.supabase_service_role_key:
-                raise ValueError("production requires SUPABASE_SERVICE_ROLE_KEY")
+            supabase_configured = any(
+                (self.supabase_url, self.supabase_jwks_url, self.supabase_service_role_key)
+            )
+            if supabase_configured:
+                if not self.supabase_url or not self.supabase_jwks_url:
+                    raise ValueError("production requires SUPABASE_URL and SUPABASE_JWKS_URL")
+                if not self.supabase_service_role_key:
+                    raise ValueError("production requires SUPABASE_SERVICE_ROLE_KEY")
+            elif self.api_key is None or len(self.api_key.get_secret_value()) < 32:
+                raise ValueError(
+                    "production requires complete Supabase auth or a 32-character VEYRA_API_KEY"
+                )
             if "*" in self.cors_origins or "*" in self.trusted_hosts:
                 raise ValueError("production CORS origins and trusted hosts must be explicit")
             if self.scheduler_enabled and not self.fama_french_data_path:

@@ -1,6 +1,6 @@
 import math
 
-from quant_engine.risk.models import CompositeRiskOutput, RiskComponents, RiskState
+from quant_engine.risk.models import CompositeRiskOutput, RiskComponents, RiskLevel
 
 
 class CompositeRiskService:
@@ -27,7 +27,7 @@ class CompositeRiskService:
             return CompositeRiskOutput(
                 portfolio_id=portfolio_id,
                 composite_score=0.0,
-                risk_state=RiskState.LOW_RISK,
+                risk_state=RiskLevel.LOW_RISK,
                 components=RiskComponents(volatility_exposure=0.0, concentration=0.0)
             )
 
@@ -60,13 +60,13 @@ class CompositeRiskService:
 
         # 5. Risk State Mapping
         if score >= 0.75:
-            state = RiskState.CRITICAL_RISK
+            state = RiskLevel.CRITICAL_RISK
         elif score >= 0.50:
-            state = RiskState.ELEVATED_RISK
+            state = RiskLevel.ELEVATED_RISK
         elif score >= 0.25:
-            state = RiskState.MODERATE_RISK
+            state = RiskLevel.MODERATE_RISK
         else:
-            state = RiskState.LOW_RISK
+            state = RiskLevel.LOW_RISK
 
         return CompositeRiskOutput(
             portfolio_id=portfolio_id,

@@ -3,8 +3,8 @@ from datetime import date
 from uuid import UUID
 from pydantic import BaseModel
 from quant_engine.control.models import DecisionState
-from quant_engine.reliability.models import ReliabilityState
-from quant_engine.risk.models import RiskState
+from quant_engine.reliability.models import ReliabilityLevel
+from quant_engine.risk.models import RiskLevel
 from quant_engine.signals.models import SignalDirection
 from quant_engine.volatility.models import MarketRegime
 
@@ -24,8 +24,8 @@ class AssetDecisionResponse(BaseModel):
     decision_state: DecisionState
     regime: MarketRegime
     volatility_state: float
-    risk_state: RiskState
-    reliability_state: ReliabilityState
+    risk_state: RiskLevel
+    reliability_state: ReliabilityLevel
     reason_codes: list[str]
 
 
@@ -37,4 +37,4 @@ class SignalDecisionEvaluationResponse(BaseModel):
     as_of_date: date
     controls: list[AssetDecisionResponse]
     composite_risk: dict
-    allocation_result: AllocationResult
+    allocation_result: AllocationResult | None = None

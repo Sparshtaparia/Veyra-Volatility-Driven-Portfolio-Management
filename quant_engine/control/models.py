@@ -6,8 +6,8 @@ from quant_engine.signals.models import SignalDirection
 from quant_engine.volatility.models import MarketRegime
 
 
-from quant_engine.reliability.models import ReliabilityState
-from quant_engine.risk.models import RiskState
+from quant_engine.reliability.models import ReliabilityLevel
+from quant_engine.risk.models import RiskLevel
 
 
 class DecisionState(str, Enum):
@@ -21,8 +21,8 @@ class ControlOutput(BaseModel):
     regulated_signal: RegulatedSignal
     volatility_state: float = Field(ge=0.0)
     regime: MarketRegime
-    risk_state: RiskState
-    reliability_state: ReliabilityState
+    risk_state: RiskLevel
+    reliability_state: ReliabilityLevel
     control_output: float = Field(ge=-1.0, le=1.0)
     direction: SignalDirection
     decision_state: DecisionState

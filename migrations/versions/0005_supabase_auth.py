@@ -20,15 +20,23 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    # Add user_id column — nullable so existing portfolios are not broken
-    op.add_column(
-        "portfolios",
-        sa.Column("user_id", sa.String(), nullable=True),
-    )
-    # Index for fast user-scoped queries
-    op.create_index("ix_portfolios_user_id", "portfolios", ["user_id"])
+    inspector = sa.inspect(op.get_bind())
+    columns = {column["name"] for column in inspector.get_columns("portfolios")}
+    if "user_id" not in columns:
+        op.add_column(
+            "portfolios",
+            sa.Column("user_id", sa.String(), nullable=True),
+        )
+    indexes = {index["name"] for index in sa.inspect(op.get_bind()).get_indexes("portfolios")}
+    if "ix_portfolios_user_id" not in indexes:
+        op.create_index("ix_portfolios_user_id", "portfolios", ["user_id"])
 
 
 def downgrade() -> None:
-    op.drop_index("ix_portfolios_user_id", table_name="portfolios")
-    op.drop_column("portfolios", "user_id")
+    inspector = sa.inspect(op.get_bind())
+    indexes = {index["name"] for index in inspector.get_indexes("portfolios")}
+    if "ix_portfolios_user_id" in indexes:
+        op.drop_index("ix_portfolios_user_id", table_name="portfolios")
+    columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("portfolios")}
+    if "user_id" in columns:
+        op.drop_column("portfolios", "user_id")
