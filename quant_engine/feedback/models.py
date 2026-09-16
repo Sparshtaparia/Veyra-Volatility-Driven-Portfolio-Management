@@ -40,3 +40,14 @@ class FeedbackUpdate(FeedbackModel):
     controlled_signal: float
     outcome: FeedbackOutcome
     updated_state: SystemState
+
+from uuid import UUID
+
+class FeedbackCycle(BaseModel):
+    evaluation_id: UUID
+    portfolio_id: str
+    previous_threshold: float = Field(ge=0.0)
+    observed_volatility: float = Field(ge=0.0)
+    feedback_error: float
+    updated_threshold: float = Field(ge=0.0)
+    timestamp: date

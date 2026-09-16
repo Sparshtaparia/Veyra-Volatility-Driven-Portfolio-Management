@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { LoaderCircle, Plus, RefreshCw, ShieldCheck } from "lucide-react"
 import { useAuth } from "@/auth/auth-context"
-import { getSavedPortfolioId, useAddHolding, useCreatePortfolio, useEvaluatePortfolio, useHoldings, usePortfolio, useExecuteRebalance } from "@/hooks/use-portfolio"
+import { getSavedPortfolioId, useAddHolding, useCreatePortfolio, useEvaluatePortfolio, useHoldings, usePortfolio, useExecuteRebalance, useFeedback } from "@/hooks/use-portfolio"
 import type { SignalDecision } from "@/api/portfolios"
 
 const currency = (value: number, code = "INR") => new Intl.NumberFormat("en-IN", { style: "currency", currency: code, maximumFractionDigits: 0 }).format(value)
@@ -79,10 +79,42 @@ function DecisionSummary({ result, portfolioId }: { result: SignalDecision, port
       )}
     </div>
   )}
-  </div>}</section> }
+  </div>}
+  <AdaptiveThresholdSection portfolioId={portfolioId} /></section> }
 function NewPortfolio({ onCreate, pending, error }: { onCreate: (name: string) => void; pending: boolean; error?: string }) { const [name, setName] = useState(""); return <main className="grid min-h-screen place-items-center bg-slate-50 p-6"><div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-7"><ShieldCheck className="size-8 text-emerald-700" /><h1 className="mt-5 text-2xl font-semibold">Create your first portfolio</h1><form className="mt-6" onSubmit={(event) => { event.preventDefault(); if (name.trim()) onCreate(name.trim()) }}><input required value={name} onChange={(event) => setName(event.target.value)} placeholder="My long-term investments" className="h-11 w-full rounded-lg border border-slate-300 px-3" />{error && <Notice text={error} />}<button disabled={pending} className="mt-5 h-11 w-full rounded-lg bg-slate-950 text-sm font-semibold text-white">Create portfolio</button></form></div></main> }
 function HoldingForm({ onAdd, pending, error }: { onAdd: (input: { ticker: string; quantity: number; average_price: number; current_price: number }) => void; pending: boolean; error?: string }) { const [ticker, setTicker] = useState(""); const [quantity, setQuantity] = useState(""); const [price, setPrice] = useState(""); return <form onSubmit={(event) => { event.preventDefault(); onAdd({ ticker: ticker.toUpperCase(), quantity: Number(quantity), average_price: Number(price), current_price: Number(price) }); setTicker(""); setQuantity(""); setPrice("") }} className="rounded-xl border border-slate-200 bg-white p-6"><h2 className="text-lg font-semibold">Add a holding</h2><div className="mt-5 space-y-3"><Input value={ticker} onChange={setTicker} placeholder="Ticker" /><Input value={quantity} onChange={setQuantity} placeholder="Quantity" type="number" /><Input value={price} onChange={setPrice} placeholder="Average/current price" type="number" /></div>{error && <Notice text={error} />}<button disabled={pending} className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 text-sm font-semibold"><Plus className="size-4" /> {pending ? "Saving…" : "Save holding"}</button></form> }
 function Input({ value, onChange, placeholder, type = "text" }: { value: string; onChange: (value: string) => void; placeholder: string; type?: string }) { return <input required type={type} min={type === "number" ? "0" : undefined} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-10 w-full rounded-lg border border-slate-300 px-3" /> }
 function Metric({ label, value }: { label: string; value: string }) { return <article className="rounded-xl border border-slate-200 bg-white p-5"><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-2xl font-semibold">{value}</p></article> }
 function Loading() { return <p className="mt-5 flex gap-2 text-sm text-slate-600"><LoaderCircle className="size-4 animate-spin" /> Loading…</p> }
 function Notice({ text }: { text: string }) { return <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{text}</p> }
+function AdaptiveThresholdSection({ portfolioId }: { portfolioId: string }) {
+  const feedback = useFeedback(portfolioId);
+  if (!feedback.data) return null;
+  const pct = (v: number) => (v * 100).toFixed(3) + "%";
+  const f = feedback.data;
+  return (
+    <section className="mt-6 rounded-xl border border-indigo-200 bg-indigo-50 p-6">
+      <p className="text-sm font-semibold text-indigo-700 uppercase tracking-wide">Adaptive Threshold</p>
+      <h2 className="mt-1 text-lg font-semibold text-indigo-900">Threshold Feedback</h2>
+      <p className="mt-1 text-sm text-indigo-600">The updated threshold will be used during the next evaluation.</p>
+      <div className="mt-5 grid gap-4 sm:grid-cols-3">
+        <article className="rounded-lg bg-white border border-indigo-100 p-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wide">Previous Threshold</p>
+          <p className="mt-2 text-xl font-semibold text-slate-900">{pct(f.previous_threshold)}</p>
+        </article>
+        <article className="rounded-lg bg-white border border-indigo-100 p-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wide">Observed Portfolio Volatility</p>
+          <p className="mt-2 text-xl font-semibold text-slate-900">{pct(f.observed_volatility)}</p>
+          <p className={`text-xs mt-1 ${f.feedback_error > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+            Error: {f.feedback_error > 0 ? '+' : ''}{pct(f.feedback_error)}
+          </p>
+        </article>
+        <article className="rounded-lg bg-indigo-700 border border-indigo-600 p-4">
+          <p className="text-xs text-indigo-200 uppercase tracking-wide">Updated Threshold (Next Eval)</p>
+          <p className="mt-2 text-xl font-semibold text-white">{pct(f.updated_threshold)}</p>
+        </article>
+      </div>
+      <p className="mt-4 text-xs text-indigo-400">Last updated: {f.timestamp}</p>
+    </section>
+  );
+}

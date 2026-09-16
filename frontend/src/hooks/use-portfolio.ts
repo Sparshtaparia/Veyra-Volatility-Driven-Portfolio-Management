@@ -11,3 +11,4 @@ export function useAddHolding(portfolioId: string | null) { const queryClient = 
 export function useEvaluatePortfolio(portfolioId: string | null) { return useMutation({ mutationFn: () => portfolioApi.evaluate(portfolioId!) }) }
 export function useEvaluation(portfolioId: string | null, evaluationId: string | null) { return useQuery({ queryKey: ["evaluation", evaluationId], queryFn: () => portfolioApi.getEvaluation(portfolioId!, evaluationId!), enabled: Boolean(portfolioId && evaluationId), retry: false }) }
 export function useExecuteRebalance(portfolioId: string | null) { return useMutation({ mutationFn: () => portfolioApi.executeRebalance(portfolioId!) }) }
+export function useFeedback(portfolioId: string | null) { return useQuery({ queryKey: ["feedback", portfolioId], queryFn: () => portfolioApi.getFeedback(portfolioId!), enabled: Boolean(portfolioId), retry: false }) }
