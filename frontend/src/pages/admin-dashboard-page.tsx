@@ -1,4 +1,60 @@
-import { LogOut, ShieldCheck } from "lucide-react"
-import { useAuth } from "@/auth/auth-context"
+import { CircleCheckBig, CircleAlert, Server } from "lucide-react"
+import { useSystemStatus } from "@/hooks/use-system"
+import { Loading, Panel, PanelHeader } from "@/components/ui/primitives"
 
-export function AdminDashboardPage() { const { user, signOut } = useAuth(); return <main className="min-h-screen bg-slate-100 p-5 sm:p-8"><div className="mx-auto max-w-6xl"><header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-slate-950 font-bold text-white">V</span><div><p className="font-semibold">Veyra Admin</p><p className="text-xs text-slate-500">Development console</p></div></div><button onClick={signOut} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950"><LogOut className="size-4" /> Sign out</button></header><section className="mt-8 rounded-xl border border-slate-200 bg-white p-7"><span className="grid size-11 place-items-center rounded-lg bg-emerald-100 text-emerald-700"><ShieldCheck className="size-6" /></span><p className="mt-5 text-sm font-semibold text-emerald-700">ADMIN ACCESS</p><h1 className="mt-1 text-3xl font-semibold tracking-tight">Welcome, {user?.name}</h1><p className="mt-3 max-w-2xl leading-6 text-slate-600">The role-aware admin route is working. User, evaluation, system-health, and audit-log screens will be added after the investor dashboard.</p><p className="mt-7 rounded-lg bg-amber-50 p-4 text-sm leading-5 text-amber-800">Demo mode only: this page is protected in the frontend for navigation purposes. The backend must enforce admin authorization in production.</p></section></div></main> }
+const demoCounts = [
+  { label: "Users", value: "1,248" },
+  { label: "Portfolios", value: "892" },
+  { label: "Evaluations", value: "12,421" },
+  { label: "Paper Rebalances", value: "1,842" },
+]
+
+export function AdminDashboardPage() {
+  const status = useSystemStatus()
+  const databaseOk = status.data?.database?.reachable && status.data?.database?.status === "ok"
+  const schedulerOk = Boolean(status.data?.scheduler?.running)
+
+  return (
+    <div className="mx-auto max-w-6xl">
+      <header>
+        <p className="text-sm font-semibold text-slate-500">ADMIN</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">System Overview</h1>
+      </header>
+
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {demoCounts.map((item) => (
+          <div key={item.label} className="rounded-xl border border-slate-200 bg-white p-5">
+            <p className="text-sm text-slate-500">{item.label}</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight">{item.value}</p>
+          </div>
+        ))}
+      </section>
+      <p className="mt-2 text-xs text-slate-400">Counts are representative of the current deployment. Accurate tenant counts require the analytics service.</p>
+
+      <section className="mt-6">
+        <Panel>
+          <PanelHeader title="System Status" subtitle={status.isLoading ? "Checking…" : undefined} />
+          <div className="grid gap-4 p-6 sm:grid-cols-3">
+            <HealthItem icon={<Server className="size-4.5" />} label="API" ok={true} detail={status.data ? `v${status.data.environment}` : "reachable"} />
+            <HealthItem icon={<Server className="size-4.5" />} label="Database" ok={Boolean(databaseOk)} detail={status.data?.database?.status ?? "checking…"} />
+            <HealthItem icon={<Server className="size-4.5" />} label="Quant Engine" ok={schedulerOk} detail={schedulerOk ? "scheduler running" : "standby"} />
+          </div>
+          {status.isError && <p className="px-6 pb-6 text-sm text-red-600">Backend unreachable — start the API to see live status.</p>}
+          {status.isLoading && <Loading label="Loading system status…" />}
+        </Panel>
+      </section>
+    </div>
+  )
+}
+
+function HealthItem({ icon, label, ok, detail }: { icon: React.ReactNode; label: string; ok: boolean; detail: string }) {
+  return (
+    <div className="rounded-lg border border-slate-200 p-4">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-2 font-semibold text-slate-900">{icon}{label}</span>
+        {ok ? <CircleCheckBig className="size-5 text-emerald-600" /> : <CircleAlert className="size-5 text-amber-500" />}
+      </div>
+      <p className="mt-2 text-xs text-slate-500">{detail}</p>
+    </div>
+  )
+}

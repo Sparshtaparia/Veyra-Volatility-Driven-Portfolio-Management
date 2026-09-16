@@ -1,4 +1,5 @@
 import { apiFetch } from "@/api/client"
+import type { PaperExecutionResult } from "@/lib/evaluation-store"
 
 export type Portfolio = { portfolio_id: string; name: string; currency: string; total_value: number; created_at: string }
 export type Holding = { id: number; ticker: string; quantity: number; average_price: number; current_price: number; market_value: number; weight: number }
@@ -17,11 +18,13 @@ export type FeedbackData = {
 
 export const portfolioApi = {
   create: (input: CreatePortfolioInput) => apiFetch<Portfolio>("/portfolios", { method: "POST", body: JSON.stringify(input) }),
+  list: () => apiFetch<Portfolio[]>("/portfolios"),
   get: (portfolioId: string) => apiFetch<Portfolio>(`/portfolios/${portfolioId}`),
   listHoldings: (portfolioId: string) => apiFetch<Holding[]>(`/portfolios/${portfolioId}/holdings`),
   addHolding: (portfolioId: string, input: AddHoldingInput) => apiFetch<Holding>(`/portfolios/${portfolioId}/holdings`, { method: "POST", body: JSON.stringify(input) }),
   evaluate: (portfolioId: string) => apiFetch<SignalDecision>(`/portfolios/${portfolioId}/signals/evaluate`, { method: "POST", body: JSON.stringify({ as_of_date: new Date().toISOString().slice(0, 10) }) }),
+  listEvaluations: (portfolioId: string) => apiFetch<Evaluation[]>(`/portfolios/${portfolioId}/evaluations`),
   getEvaluation: (portfolioId: string, evaluationId: string) => apiFetch<Evaluation>(`/portfolios/${portfolioId}/evaluations/${evaluationId}`),
-  executeRebalance: (portfolioId: string) => apiFetch<any>(`/portfolios/${portfolioId}/rebalance`, { method: "POST", body: JSON.stringify({ as_of_date: new Date().toISOString().slice(0, 10) }) }),
+  executeRebalance: (portfolioId: string) => apiFetch<PaperExecutionResult>(`/portfolios/${portfolioId}/rebalance`, { method: "POST", body: JSON.stringify({ as_of_date: new Date().toISOString().slice(0, 10) }) }),
   getFeedback: (portfolioId: string) => apiFetch<FeedbackData | null>(`/portfolios/${portfolioId}/feedback`),
 }

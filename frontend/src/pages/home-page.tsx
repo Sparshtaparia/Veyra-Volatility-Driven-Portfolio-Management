@@ -1,13 +1,80 @@
-import { ArrowRight, Check, CircleAlert, LineChart, ShieldCheck, Sparkles } from "lucide-react"
+import { ArrowRight, MonitorCheck, RefreshCw, Scale, ShieldCheck, Waves } from "lucide-react"
 import { Link } from "react-router-dom"
 import { SiteHeader } from "@/components/layout/site-header"
 
-const steps = [["Tell us your goals", "Share what you are saving for and how comfortable you feel with ups and downs."], ["See your risk clearly", "We turn market volatility into a simple, understandable portfolio view."], ["Invest with confidence", "Receive practical guidance when your portfolio needs attention."]]
-
 export function HomePage() {
-  return <div className="min-h-screen bg-[#f8faf9] text-slate-950"><SiteHeader /><main><section className="relative overflow-hidden px-5 pb-20 pt-16 sm:px-8 sm:pb-28 sm:pt-24"><div className="absolute inset-x-0 top-0 -z-0 h-96 bg-[radial-gradient(circle_at_65%_5%,#d1fae5,transparent_38%),radial-gradient(circle_at_10%_25%,#e0f2fe,transparent_32%)]" /><div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.1fr_.9fr]"><div><p className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-800"><Sparkles className="size-4" /> Built for everyday investors</p><h1 className="max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">A clearer way to invest through market ups and downs.</h1><p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">Veyra helps you understand your portfolio’s risk and make informed decisions—without needing to be a market expert.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/dashboard" className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400">Build your plan <ArrowRight className="size-4" /></Link><a href="#how-it-works" className="inline-flex h-12 items-center justify-center rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">See how it works</a></div><p className="mt-5 flex items-center gap-2 text-sm text-slate-500"><Check className="size-4 text-emerald-600" /> Plain-language insights. You remain in control.</p></div><div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-7"><div className="flex items-center justify-between"><div><p className="text-sm text-slate-500">Your portfolio</p><p className="mt-1 text-2xl font-semibold">₹4,28,500</p></div><span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">+2.4%</span></div><div className="mt-8 h-32 rounded-xl bg-[linear-gradient(180deg,rgba(16,185,129,.18),transparent),linear-gradient(125deg,transparent_12%,#10b981_13%,#10b981_15%,transparent_16%,transparent_29%,#10b981_30%,#10b981_32%,transparent_33%,transparent_53%,#10b981_54%,#10b981_56%,transparent_57%)]" /><div className="mt-7 rounded-xl bg-slate-50 p-4"><div className="flex gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-700"><CircleAlert className="size-5" /></span><div><p className="font-semibold">Risk level: balanced</p><p className="mt-1 text-sm leading-5 text-slate-600">Your investments are spread across different assets, helping smooth out sudden changes.</p></div></div></div></div></div></section><section className="border-y border-slate-200 bg-white px-5 py-6 sm:px-8"><div className="mx-auto grid max-w-7xl gap-5 text-sm sm:grid-cols-3"><TrustPoint title="Your money, your decision" text="Veyra explains risk; it does not make trades for you." /><TrustPoint title="Clarity before complexity" text="Important information is shown in everyday language." /><TrustPoint title="Security comes first" text="We will always make data use and consent visible." /></div></section><section id="how-it-works" className="bg-white px-5 py-20 sm:px-8"><div className="mx-auto max-w-7xl"><p className="text-sm font-semibold uppercase tracking-wider text-emerald-700">Simple by design</p><h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Know what to do, one step at a time.</h2><div className="mt-10 grid gap-5 md:grid-cols-3">{steps.map(([title, description], index) => <article key={title} className="rounded-xl border border-slate-200 p-6"><span className="grid size-9 place-items-center rounded-full bg-slate-950 text-sm font-semibold text-white">0{index + 1}</span><h3 className="mt-5 text-lg font-semibold">{title}</h3><p className="mt-2 leading-6 text-slate-600">{description}</p></article>)}</div></div></section><section id="why-veyra" className="px-5 py-20 sm:px-8"><div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-3"><ValueCard icon={<LineChart />} title="See the bigger picture" text="Understand your performance and risk in one calm, clear dashboard." /><ValueCard icon={<ShieldCheck />} title="Feel prepared" text="See how market changes could affect you before they become stressful." /><ValueCard icon={<Sparkles />} title="Learn as you go" text="Every insight explains what it means, with no unnecessary jargon." /></div></section><section id="learn" className="px-5 pb-20 sm:px-8"><div className="mx-auto max-w-7xl rounded-2xl bg-slate-950 px-7 py-12 text-white sm:px-12"><p className="text-emerald-300">Ready when you are</p><h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">Start building a calmer relationship with your money.</h2><Link to="/dashboard" className="mt-7 inline-flex h-11 items-center rounded-lg bg-white px-5 text-sm font-semibold text-slate-950 hover:bg-slate-100">Get started</Link><p className="mt-8 text-xs leading-5 text-slate-400">Investments are subject to market risk. Veyra provides educational insights, not personal financial advice.</p></div></section></main><footer className="border-t border-slate-200 bg-white px-5 py-8 text-sm text-slate-500 sm:px-8"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 sm:flex-row"><p>© 2026 Veyra. Investing made understandable.</p><p>Privacy · Terms · Risk disclosures</p></div></footer></div>
+  return (
+    <div className="min-h-screen bg-[#f8faf9] text-slate-950">
+      <SiteHeader />
+      <main>
+        <section className="relative overflow-hidden px-5 pb-16 pt-16 sm:px-8 sm:pb-24 sm:pt-24">
+          <div className="absolute inset-x-0 top-0 -z-0 h-96 bg-[radial-gradient(circle_at_65%_5%,#d1fae5,transparent_38%),radial-gradient(circle_at_10%_25%,#e0f2fe,transparent_32%)]" />
+          <div className="relative mx-auto max-w-4xl text-center">
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-800"><ShieldCheck className="size-4" /> Volatility-aware portfolio guidance</p>
+            <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">Your portfolio doesn't need to be rebuilt every day.</h1>
+            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-slate-600">Veyra tells you when it needs to change — and what to do about it. Monitor, evaluate, adapt.</p>
+            <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link to="/sign-up" className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400">Create Portfolio <ArrowRight className="size-4" /></Link>
+              <Link to="/sign-in" className="inline-flex h-12 items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">Sign In</Link>
+            </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="border-t border-slate-200 bg-white px-5 py-16 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <p className="text-center text-sm font-semibold uppercase tracking-wider text-emerald-700">How it works</p>
+            <h2 className="mt-2 text-center text-3xl font-semibold tracking-tight">Monitor → Evaluate → Adapt</h2>
+            <div className="mx-auto mt-12 max-w-2xl">
+              <FlowStep icon={<MonitorCheck className="size-5" />} label="YOUR PORTFOLIO" text="Veyra watches your holdings, their prices and how the market is moving." accent="bg-emerald-500" />
+              <FlowArrow />
+              <FlowStep icon={<Waves className="size-5" />} label="MARKET CONDITIONS" text="Volatility regimes and price signals are read from the market — not from guesswork." accent="bg-sky-500" />
+              <FlowArrow />
+              <FlowStep icon={<RefreshCw className="size-5" />} label="VEYRA EVALUATION" text="A risk-aware engine combines the market state, your portfolio and signal reliability." accent="bg-indigo-500" />
+              <FlowArrow />
+              <FlowStep icon={<Scale className="size-5" />} label="HOLD / ADAPT" text="You get a clear answer: hold, or review the recommended change." accent="bg-amber-500" />
+            </div>
+          </div>
+        </section>
+
+        <section id="why-veyra" className="px-5 py-16 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <p className="text-center text-sm font-semibold uppercase tracking-wider text-emerald-700">Why Veyra</p>
+            <h2 className="mt-2 text-center text-3xl font-semibold tracking-tight">Built for investors, powered by markets</h2>
+            <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <ValueCard icon={<Waves className="size-5" />} title="Volatility-aware" text="Recognizes when markets get choppy and treats calm and chaotic periods differently." />
+              <ValueCard icon={<ShieldCheck className="size-5" />} title="Risk-aware" text="Weighs concentration and exposure in every recommendation, not just raw returns." />
+              <ValueCard icon={<RefreshCw className="size-5" />} title="Adaptive" text="Adjusts its own sensitivity over time so guidance stays relevant as conditions change." />
+              <ValueCard icon={<MonitorCheck className="size-5" />} title="Portfolio-focused" text="Starts from the portfolio you actually hold and only tells you to act when needed." />
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  )
 }
 
-function ValueCard({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) { return <article className="rounded-xl bg-white p-6"><span className="grid size-11 place-items-center rounded-lg bg-emerald-100 text-emerald-800">{icon}</span><h3 className="mt-5 text-lg font-semibold">{title}</h3><p className="mt-2 leading-6 text-slate-600">{text}</p></article> }
+function FlowStep({ icon, label, text, accent }: { icon: React.ReactNode; label: string; text: string; accent: string }) {
+  return (
+    <div className="flex flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-[#f8faf9] p-7 sm:flex-row sm:gap-6">
+      <span className={`grid size-12 shrink-0 place-items-center rounded-xl text-white ${accent}`}>{icon}</span>
+      <div className="text-center sm:text-left">
+        <p className="text-sm font-bold tracking-wide text-slate-900">{label}</p>
+        <p className="mt-1 leading-6 text-slate-600">{text}</p>
+      </div>
+    </div>
+  )
+}
 
-function TrustPoint({ title, text }: { title: string; text: string }) { return <div className="flex gap-3"><span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-700"><Check className="size-4" /></span><p className="leading-5 text-slate-600"><strong className="block font-semibold text-slate-900">{title}</strong>{text}</p></div> }
+function FlowArrow() {
+  return <div className="mx-auto -my-1 grid w-12 place-items-center py-2"><ArrowRight className="size-6 rotate-90 text-slate-300" /></div>
+}
+
+function ValueCard({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
+  return (
+    <article className="rounded-xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-lg hover:shadow-slate-200/60">
+      <span className="grid size-11 place-items-center rounded-lg bg-emerald-100 text-emerald-800">{icon}</span>
+      <h3 className="mt-5 text-lg font-semibold">{title}</h3>
+      <p className="mt-2 leading-6 text-slate-600">{text}</p>
+    </article>
+  )
+}
