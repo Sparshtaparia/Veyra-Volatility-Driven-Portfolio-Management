@@ -14,4 +14,5 @@ export const portfolioApi = {
   addHolding: (portfolioId: string, input: AddHoldingInput) => apiFetch<Holding>(`/portfolios/${portfolioId}/holdings`, { method: "POST", body: JSON.stringify(input) }),
   evaluate: (portfolioId: string) => apiFetch<SignalDecision>(`/portfolios/${portfolioId}/signals/evaluate`, { method: "POST", body: JSON.stringify({ as_of_date: new Date().toISOString().slice(0, 10) }) }),
   getEvaluation: (portfolioId: string, evaluationId: string) => apiFetch<Evaluation>(`/portfolios/${portfolioId}/evaluations/${evaluationId}`),
+  executeRebalance: (portfolioId: string) => apiFetch<any>(`/portfolios/${portfolioId}/rebalance`, { method: "POST", body: JSON.stringify({ as_of_date: new Date().toISOString().slice(0, 10) }) }),
 }

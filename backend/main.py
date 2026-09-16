@@ -12,7 +12,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from backend.api import market_data, portfolio_control, portfolios, signals, system, volatility
+from backend.api import market_data, portfolio_control, portfolios, signals, system, volatility, rebalance
 from backend.dependencies.db import get_db
 from backend.exceptions import (
     EvaluationNotFoundError,
@@ -69,6 +69,7 @@ app.include_router(volatility.router, prefix=settings.api_prefix)
 app.include_router(signals.router, prefix=settings.api_prefix)
 app.include_router(portfolio_control.router, prefix=settings.api_prefix)
 app.include_router(system.router, prefix=settings.api_prefix)
+app.include_router(rebalance.router, prefix=settings.api_prefix)
 
 
 # Healthcheck
