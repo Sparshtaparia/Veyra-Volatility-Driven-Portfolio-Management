@@ -1,0 +1,15 @@
+import { supabase } from "@/lib/supabase"
+
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api/v1"
+
+export class ApiError extends Error { constructor(public status: number, message: string) { super(message) } }
+
+export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  let response: Response
+  try {
+    const { data } = await supabase.auth.getSession()
+    response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers: { "Content-Type": "application/json", ...(data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}), ...options.headers } })
+  } catch { throw new ApiError(0, "Veyra API is not reachable. Start the backend and try again.") }
+  if (!response.ok) { const body = await response.json().catch(() => null); throw new ApiError(response.status, body?.detail ?? "The request could not be completed.") }
+  return response.json() as Promise<T>
+}
