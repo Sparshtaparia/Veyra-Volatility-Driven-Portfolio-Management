@@ -68,9 +68,7 @@ class RegimeRepository:
         *,
         through_date: date | None = None,
     ) -> list[RegimeStateModel]:
-        statement = select(RegimeStateModel).where(
-            RegimeStateModel.portfolio_id == portfolio_id
-        )
+        statement = select(RegimeStateModel).where(RegimeStateModel.portfolio_id == portfolio_id)
         if through_date is not None:
             statement = statement.where(RegimeStateModel.as_of_date <= through_date)
         statement = statement.order_by(

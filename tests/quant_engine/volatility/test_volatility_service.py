@@ -19,7 +19,6 @@ from quant_engine.volatility.models import (
 )
 from quant_engine.volatility.service import VolatilityService
 
-
 AS_OF_DATE = date(2026, 9, 16)
 
 
@@ -40,11 +39,7 @@ class FakeEngine:
     ) -> VolatilityEstimate:
         if ticker in self.failures:
             raise InvalidReturnsError(f"invalid history for {ticker}")
-        status = (
-            GARCHFitStatus.FALLBACK
-            if ticker in self.fallbacks
-            else GARCHFitStatus.SUCCESS
-        )
+        status = GARCHFitStatus.FALLBACK if ticker in self.fallbacks else GARCHFitStatus.SUCCESS
         ratio = float(returns.iloc[-1])
         conditional_volatility = 0.02
         return VolatilityEstimate(

@@ -15,7 +15,6 @@ from quant_engine.volatility.models import (
     VolatilityEstimate,
 )
 
-
 AS_OF_DATE = date(2026, 9, 16)
 
 
@@ -79,9 +78,7 @@ def test_cross_section_uses_median_ratio_and_is_robust_to_outlier() -> None:
 
 
 def test_invalid_and_wrong_timestamp_estimates_are_excluded() -> None:
-    invalid = estimate("INVALID", 1.0).model_copy(
-        update={"volatility_ratio": float("nan")}
-    )
+    invalid = estimate("INVALID", 1.0).model_copy(update={"volatility_ratio": float("nan")})
     wrong_date = estimate("OLD", 1.0, timestamp=date(2026, 9, 15))
     aggregator = VolatilityAggregator(coverage_requirements=permissive_coverage())
 

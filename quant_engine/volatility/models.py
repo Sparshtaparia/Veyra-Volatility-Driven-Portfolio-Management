@@ -66,9 +66,7 @@ class GARCHParameters(VolatilityModel):
             raise ValueError("alpha + gamma must be >= 0")
 
         if self.persistence >= 1.0:
-            raise ValueError(
-                "GJR-GARCH persistence (alpha + beta + gamma / 2) must be < 1"
-            )
+            raise ValueError("GJR-GARCH persistence (alpha + beta + gamma / 2) must be < 1")
         return self
 
 
@@ -131,9 +129,7 @@ class VolatilityEstimate(VolatilityModel):
 class MarketVolatilityState(VolatilityModel):
     """Cross-sectional volatility state and its threshold-derived regime."""
 
-    as_of_date: date = Field(
-        validation_alias=AliasChoices("as_of_date", "timestamp")
-    )
+    as_of_date: date = Field(validation_alias=AliasChoices("as_of_date", "timestamp"))
     total_asset_count: int = Field(
         gt=0,
         validation_alias=AliasChoices("total_asset_count", "number_of_assets"),

@@ -11,9 +11,11 @@ from pydantic import BaseModel
 
 from quant_engine.domain import EvaluationDecision, EvaluationStatus, EvaluationTrigger
 
+
 class EvaluatePortfolioRequest(BaseModel):
     evaluation_date: date
     trigger: EvaluationTrigger
+
 
 class EvaluationResponse(BaseModel):
     evaluation_id: UUID

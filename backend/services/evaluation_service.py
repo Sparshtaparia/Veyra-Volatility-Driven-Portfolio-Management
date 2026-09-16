@@ -4,12 +4,11 @@ backend/services/evaluation_service.py
 Business logic for Evaluations.
 """
 
-from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
-from backend.exceptions import PortfolioNotFoundError, EvaluationNotFoundError
+from backend.exceptions import EvaluationNotFoundError, PortfolioNotFoundError
 from backend.services.portfolio_service import PortfolioService
 from database.repositories.evaluation_repo import EvaluationRepository
 from quant_engine.domain import (
@@ -33,7 +32,7 @@ class EvaluationService:
             raise PortfolioNotFoundError(portfolio_id)
 
         # STEP 2: Convert to domain
-        portfolio_domain = self.portfolio_service.to_domain(portfolio_id, request.evaluation_date)
+        self.portfolio_service.to_domain(portfolio_id, request.evaluation_date)
 
         # STEP 3: Generate evaluation_id
         evaluation_id = uuid4()
@@ -50,7 +49,7 @@ class EvaluationService:
             evaluation_date=request.evaluation_date,
             trigger=request.trigger,
             decision=decision,
-            status=status
+            status=status,
         )
 
         # STEP 6: Return EvaluationResult
@@ -61,7 +60,7 @@ class EvaluationService:
             trigger=db_eval.trigger,
             decision=db_eval.decision,
             status=db_eval.status,
-            created_at=db_eval.created_at
+            created_at=db_eval.created_at,
         )
 
     def get_evaluation(self, evaluation_id: str) -> EvaluationResult:
@@ -81,5 +80,20 @@ class EvaluationService:
             trigger=db_eval.trigger,
             decision=db_eval.decision,
             status=db_eval.status,
-            created_at=db_eval.created_at
+            created_at=db_eval.created_at,
         )
+
+    def list_evaluations(self, portfolio_id: str) -> list[EvaluationResult]:
+        self.portfolio_service.get_portfolio(portfolio_id)
+        return [
+            EvaluationResult(
+                evaluation_id=item.evaluation_id,
+                portfolio_id=item.portfolio_id,
+                evaluation_date=item.evaluation_date,
+                trigger=item.trigger,
+                decision=item.decision,
+                status=item.status,
+                created_at=item.created_at,
+            )
+            for item in self.repo.list_evaluations_for_portfolio(portfolio_id)
+        ]

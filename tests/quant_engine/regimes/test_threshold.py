@@ -9,7 +9,6 @@ from quant_engine.regimes.exceptions import InsufficientStressHistoryError
 from quant_engine.regimes.models import StressObservation
 from quant_engine.regimes.threshold import FixedThresholdStrategy, RollingQuantileThreshold
 
-
 START = date(2026, 1, 1)
 
 

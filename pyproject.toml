@@ -30,6 +30,9 @@ dependencies = [
     "arch>=6.3.0,<7.0.0",
     "cvxpy>=1.5.0,<1.6.0",
     "yfinance>=0.2.0,<1.0.0",
+    "openpyxl>=3.1.0,<4.0.0",
+    "python-multipart>=0.0.9,<1.0.0",
+    "apscheduler>=3.10.4,<4.0.0",
 ]
 
 [project.optional-dependencies]

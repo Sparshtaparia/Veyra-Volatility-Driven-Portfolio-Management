@@ -4,9 +4,6 @@ backend/api/portfolios.py
 FastAPI routes for Portfolios and Evaluations.
 """
 
-from typing import List
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -21,7 +18,6 @@ from backend.schemas.portfolio import (
     AddHoldingRequest,
     CreatePortfolioRequest,
     HoldingResponse,
-    PortfolioDetailResponse,
     PortfolioResponse,
 )
 from backend.services.evaluation_service import EvaluationService
@@ -43,44 +39,9 @@ def create_portfolio(request: CreatePortfolioRequest, db: Session = Depends(get_
     )
 
 
-@router.get("/{portfolio_id}", response_model=PortfolioDetailResponse)
-def get_portfolio(portfolio_id: str, db: Session = Depends(get_db)):
-    service = PortfolioService(db)
-    try:
-        portfolio = service.get_portfolio(portfolio_id)
-        return PortfolioDetailResponse(
-            portfolio_id=portfolio.id,
-            name=portfolio.name,
-            currency=portfolio.currency,
-            total_value=portfolio.total_value,
-            created_at=portfolio.created_at,
-        )
-    except PortfolioNotFoundError:
-        raise HTTPException(status_code=404, detail="Portfolio not found")
-
-
-@router.get("/{portfolio_id}/holdings", response_model=List[HoldingResponse])
-def get_holdings(portfolio_id: str, db: Session = Depends(get_db)):
-    service = PortfolioService(db)
-    try:
-        service.get_portfolio(portfolio_id)
-        return [
-            HoldingResponse(
-                id=holding.id,
-                ticker=holding.ticker,
-                quantity=holding.quantity,
-                average_price=holding.average_price,
-                current_price=holding.current_price,
-                market_value=holding.market_value,
-                weight=holding.weight,
-            )
-            for holding in service.repo.get_holdings(portfolio_id)
-        ]
-    except PortfolioNotFoundError:
-        raise HTTPException(status_code=404, detail="Portfolio not found")
-
-
-@router.post("/{portfolio_id}/holdings", response_model=HoldingResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{portfolio_id}/holdings", response_model=HoldingResponse, status_code=status.HTTP_201_CREATED
+)
 def add_holding(portfolio_id: str, request: AddHoldingRequest, db: Session = Depends(get_db)):
     service = PortfolioService(db)
     try:
@@ -106,8 +67,14 @@ def add_holding(portfolio_id: str, request: AddHoldingRequest, db: Session = Dep
         raise HTTPException(status_code=422, detail=str(e))
 
 
-@router.post("/{portfolio_id}/evaluate", response_model=EvaluationResponse, status_code=status.HTTP_202_ACCEPTED)
-def evaluate_portfolio(portfolio_id: str, request: EvaluatePortfolioRequest, db: Session = Depends(get_db)):
+@router.post(
+    "/{portfolio_id}/evaluate",
+    response_model=EvaluationResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def evaluate_portfolio(
+    portfolio_id: str, request: EvaluatePortfolioRequest, db: Session = Depends(get_db)
+):
     service = EvaluationService(db)
     try:
         domain_request = EvaluationRequest(
@@ -116,7 +83,7 @@ def evaluate_portfolio(portfolio_id: str, request: EvaluatePortfolioRequest, db:
             trigger=request.trigger,
         )
         result = service.evaluate_portfolio(portfolio_id=portfolio_id, request=domain_request)
-        
+
         return EvaluationResponse(
             evaluation_id=result.evaluation_id,
             portfolio_id=result.portfolio_id,
@@ -138,8 +105,8 @@ def get_evaluation(portfolio_id: str, evaluation_id: str, db: Session = Depends(
     try:
         result = service.get_evaluation(evaluation_id=evaluation_id)
         if result.portfolio_id != portfolio_id:
-             raise HTTPException(status_code=404, detail="Evaluation not found for this portfolio")
-        
+            raise HTTPException(status_code=404, detail="Evaluation not found for this portfolio")
+
         return EvaluationResponse(
             evaluation_id=result.evaluation_id,
             portfolio_id=result.portfolio_id,
@@ -151,3 +118,11 @@ def get_evaluation(portfolio_id: str, evaluation_id: str, db: Session = Depends(
         )
     except EvaluationNotFoundError:
         raise HTTPException(status_code=404, detail="Evaluation not found")
+
+
+@router.get("/{portfolio_id}/evaluations", response_model=list[EvaluationResponse])
+def list_evaluations(portfolio_id: str, db: Session = Depends(get_db)):
+    try:
+        return EvaluationService(db).list_evaluations(portfolio_id)
+    except PortfolioNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio not found")

@@ -15,8 +15,9 @@ Usage
 """
 
 from functools import lru_cache
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,6 +38,12 @@ class Settings(BaseSettings):
     Example: postgresql+psycopg2://veyra:veyra@localhost:5432/veyra
     """
 
+    database_pool_size: int = Field(default=5, ge=1, le=50)
+    database_max_overflow: int = Field(default=10, ge=0, le=100)
+    database_pool_timeout_seconds: int = Field(default=30, ge=1, le=120)
+    database_pool_recycle_seconds: int = Field(default=900, ge=60, le=3600)
+    database_connect_timeout_seconds: int = Field(default=10, ge=1, le=60)
+
     # ------------------------------------------------------------------
     # Application
     # ------------------------------------------------------------------
@@ -49,12 +56,34 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     """URL prefix for all API routes."""
 
-    frontend_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
-    """Comma-separated browser origins allowed to call this API."""
+    cors_origins: list[str] = ["http://localhost:5173"]
+    """Browser origins allowed to call the API."""
 
-    @property
-    def cors_origins(self) -> list[str]:
-        return [origin.strip() for origin in self.frontend_origins.split(",") if origin.strip()]
+    trusted_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
+    api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("VEYRA_API_KEY", "API_KEY"),
+    )
+    structured_json_logs: bool = True
+
+    market_data_provider: str = "yfinance"
+    market_data_fallback_provider: str | None = "yahoo_chart"
+    market_data_retry_attempts: int = Field(default=3, ge=1, le=8)
+    market_data_backoff_seconds: float = Field(default=0.25, ge=0.0, le=10.0)
+    market_data_max_backoff_seconds: float = Field(default=4.0, ge=0.0, le=60.0)
+    market_data_timeout_seconds: float = Field(default=20.0, gt=0.0, le=120.0)
+    market_data_requests_per_second: float = Field(default=2.0, gt=0.0, le=100.0)
+    market_data_max_staleness_days: int = Field(default=5, ge=0, le=30)
+    market_data_cache_ttl_seconds: int = Field(default=900, ge=0, le=86400)
+
+    scheduler_enabled: bool = False
+    scheduler_timezone: str = "UTC"
+    scheduled_evaluation_cron: str = "0 2 * * 1-5"
+    scheduled_volatility_cron: str = "0 */6 * * 1-5"
+    scheduler_run_lock_timeout_minutes: int = Field(default=120, ge=5, le=1440)
+
+    fama_french_data_path: str | None = None
+    """Optional path to a decimal-return five-factor CSV used by Phase 4."""
 
     # ------------------------------------------------------------------
     # Business defaults
@@ -91,6 +120,7 @@ class Settings(BaseSettings):
         env_file=".env",
         extra="ignore",  # Silently drop unknown env vars
         case_sensitive=False,
+        populate_by_name=True,
     )
 
     # ------------------------------------------------------------------
@@ -113,6 +143,49 @@ class Settings(BaseSettings):
         if lower not in allowed:
             raise ValueError(f"app_env must be one of {allowed}, got {v!r}")
         return lower
+
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, value: str) -> str:
+        value = value.strip()
+        allowed = ("postgresql://", "postgresql+psycopg2://", "sqlite://")
+        if not value.startswith(allowed):
+            raise ValueError("database_url must use PostgreSQL or SQLite SQLAlchemy syntax")
+        return value
+
+    @field_validator("market_data_provider", "market_data_fallback_provider")
+    @classmethod
+    def validate_provider_name(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        normalized = value.strip().lower()
+        if normalized not in {"yfinance", "yahoo_chart"}:
+            raise ValueError(f"unsupported market-data provider: {value}")
+        return normalized
+
+    @field_validator("scheduler_timezone")
+    @classmethod
+    def validate_scheduler_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError(f"unknown scheduler timezone: {value}") from exc
+        return value
+
+    @model_validator(mode="after")
+    def validate_production_configuration(self) -> "Settings":
+        if self.market_data_max_backoff_seconds < self.market_data_backoff_seconds:
+            raise ValueError("market-data maximum backoff must be at least the base backoff")
+        if self.app_env == "production":
+            if not self.database_url.startswith(("postgresql://", "postgresql+psycopg2://")):
+                raise ValueError("production requires a PostgreSQL DATABASE_URL")
+            if self.api_key is None or len(self.api_key.get_secret_value()) < 32:
+                raise ValueError("production requires VEYRA_API_KEY with at least 32 characters")
+            if "*" in self.cors_origins or "*" in self.trusted_hosts:
+                raise ValueError("production CORS origins and trusted hosts must be explicit")
+            if self.scheduler_enabled and not self.fama_french_data_path:
+                raise ValueError("scheduled full evaluation requires FAMA_FRENCH_DATA_PATH")
+        return self
 
     @field_validator("max_single_asset_weight")
     @classmethod

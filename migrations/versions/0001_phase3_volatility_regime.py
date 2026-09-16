@@ -102,9 +102,7 @@ def upgrade() -> None:
         sa.CheckConstraint("failed_asset_count >= 0", name="ck_regime_failed_count"),
         sa.CheckConstraint("excluded_count >= 0", name="ck_regime_excluded_count"),
         sa.CheckConstraint("aggregate_volatility >= 0", name="ck_regime_aggregate_vol"),
-        sa.CheckConstraint(
-            "median_realized_volatility >= 0", name="ck_regime_realized_vol"
-        ),
+        sa.CheckConstraint("median_realized_volatility >= 0", name="ck_regime_realized_vol"),
         sa.CheckConstraint("median_volatility_ratio >= 0", name="ck_regime_median_ratio"),
         sa.CheckConstraint("ratio_iqr >= 0", name="ck_regime_ratio_iqr"),
         sa.CheckConstraint("stress_score >= 0", name="ck_regime_stress_score"),
@@ -118,13 +116,9 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(["portfolio_id"], ["portfolios.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "evaluation_id", "as_of_date", name="uq_regime_state_evaluation_date"
-        ),
+        sa.UniqueConstraint("evaluation_id", "as_of_date", name="uq_regime_state_evaluation_date"),
     )
-    op.create_index(
-        "ix_regime_states_evaluation_id", "regime_states", ["evaluation_id"]
-    )
+    op.create_index("ix_regime_states_evaluation_id", "regime_states", ["evaluation_id"])
     op.create_index(
         "ix_regime_states_portfolio_date",
         "regime_states",

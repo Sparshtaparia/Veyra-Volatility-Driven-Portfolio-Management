@@ -4,7 +4,8 @@ Veyra is a backend system designed for volatility-driven portfolio management. I
 
 ## Architecture
 - **API**: FastAPI
-- **Database**: Supabase PostgreSQL via SQLAlchemy 2.x and Alembic
+- **Quant terminal**: React + TypeScript + Tailwind + Plotly
+- **Database**: PostgreSQL 15 via SQLAlchemy 2.x and Alembic
 - **Validation**: Pydantic v2
 - **Testing**: pytest
 
@@ -15,10 +16,10 @@ Veyra is a backend system designed for volatility-driven portfolio management. I
    cp .env.example .env
    ```
 
-2. In Supabase, create a project and copy its transaction-pooler URI into
-   `DATABASE_URL` (include `?sslmode=require`). Copy the project URL and anon
-   key into both the root `.env` and `frontend/.env`; see each `.env.example`.
-   The frontend uses Supabase Auth and sends its access token to this API.
+2. Start the database:
+   ```bash
+   docker compose up -d
+   ```
 
 3. Install dependencies:
    ```bash
@@ -36,6 +37,19 @@ Veyra is a backend system designed for volatility-driven portfolio management. I
    ```bash
    uvicorn backend.main:app --reload
    ```
+
+6. Start the quant terminal:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+Or start PostgreSQL, the migrated API, and the production frontend together:
+
+```bash
+docker compose up --build
+```
 
 ## Testing
 
@@ -89,12 +103,41 @@ Phase 3 state is stored in PostgreSQL through SQLAlchemy. The volatility and
 regime rows share the existing evaluation ID, and reusing a completed
 evaluation ID returns the persisted result.
 
+### Evaluate Controlled Signals
+
+Configure `FAMA_FRENCH_DATA_PATH` with a decimal-return five-factor CSV, then:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/portfolios/port-1234abcd/signals/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{"as_of_date": "2026-09-16"}'
+
+curl http://localhost:8000/api/v1/evaluations/EVALUATION_UUID/signals
+curl http://localhost:8000/api/v1/evaluations/EVALUATION_UUID/risk
+curl http://localhost:8000/api/v1/evaluations/EVALUATION_UUID/explainability
+```
+
+## Phase 5 portfolio control
+
+Phase 5 completes the core loop with CSV/XLSX/manual ingestion, a
+regime-and-risk exposure controller, inverse-volatility convex optimization,
+paper rebalancing, deterministic state feedback, chronological walk-forward
+backtesting, seven architecture ablations, and performance attribution.
+
+See [the Phase 5 architecture and deployment guide](docs/phase5.md).
+
+Production scheduling, resilient market data, Supabase pooling, security, and
+observability are documented in [the Phase 6 operations guide](docs/phase6_operations.md).
+
 ## Phase Roadmap
 
 - **Phase 1: Foundation** - API, database, domain models.
 - **Phase 2: Market data + features** - OHLCV data and technical indicators.
 - **Phase 3: GJR-GARCH + volatility regime** - Conditional volatility modeling.
 - **Phase 4: Fama-French + alpha** - Rolling betas and multi-factor ranking.
-- **Phase 5: Risk + reliability + control** - State-coupled signal regulation.
-- **Phase 6: Optimization + rebalance** - Target allocation calculation.
-- **Phase 7: Execution + feedback** - Paper trading and adaptive threshold updates.
+- **Phase 5: Final core** - Optimization, paper rebalance, feedback, backtesting,
+  ablations, attribution, and the quant terminal.
+- **Phase 6: Production operations** - Resilient providers, scheduled pipelines,
+  operational persistence, security, health checks, and deployment hardening.
+
+Live broker execution and trade authorization remain intentionally out of scope.
