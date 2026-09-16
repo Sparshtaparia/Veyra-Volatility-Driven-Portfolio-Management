@@ -1,0 +1,12 @@
+import { useState } from "react"
+import { ArrowRight } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { useAuth } from "@/auth/auth-context"
+import { AuthShell } from "@/components/auth/auth-shell"
+import { FormField } from "@/components/auth/form-field"
+
+export function SignUpPage() {
+  const navigate = useNavigate(); const { createInvestor } = useAuth(); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
+  function submit(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); const nextErrors = { email: email.includes("@") ? undefined : "Enter a valid email address.", password: password.length >= 8 ? undefined : "Use at least 8 characters." }; setErrors(nextErrors); if (!nextErrors.email && !nextErrors.password) { createInvestor(email); navigate("/app") } }
+  return <AuthShell><p className="text-sm font-medium text-emerald-700">Start your Veyra journey</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Create your account</h1><p className="mt-3 leading-6 text-slate-600">It only takes a minute. You can explore first—no investment is required.</p><form onSubmit={submit} className="mt-8 space-y-5" noValidate><FormField id="email" label="Email address" type="email" autoComplete="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} error={errors.email} /><FormField id="password" label="Create a password" type="password" autoComplete="new-password" placeholder="At least 8 characters" value={password} onChange={(event) => setPassword(event.target.value)} error={errors.password} /><label className="flex cursor-pointer items-start gap-3 text-sm leading-5 text-slate-600"><input type="checkbox" required className="mt-0.5 size-4 rounded border-slate-300 accent-emerald-600" />I agree to Veyra’s Terms of Use and Privacy Policy.</label><button type="submit" className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-slate-950 text-sm font-semibold text-white transition hover:bg-slate-800">Create account <ArrowRight className="size-4" /></button></form><p className="mt-6 text-center text-sm text-slate-600">Already have an account? <Link className="font-semibold text-emerald-700 hover:text-emerald-800" to="/sign-in">Sign in</Link></p></AuthShell>
+}
