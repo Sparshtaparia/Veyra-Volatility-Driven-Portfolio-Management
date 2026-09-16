@@ -1,7 +1,7 @@
 """Add Phase 3 volatility and regime state tables.
 
 Revision ID: 0001_phase3_volatility_regime
-Revises: None
+Revises: 0000_phase1_baseline
 """
 
 from collections.abc import Sequence
@@ -11,7 +11,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0001_phase3_volatility_regime"
-down_revision: str | Sequence[str] | None = None
+down_revision: str | Sequence[str] | None = "0000_phase1_baseline"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

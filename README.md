@@ -582,7 +582,16 @@ SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_JWKS_URL=
 DATABASE_URL=
+VEYRA_API_KEY=
+CORS_ORIGINS=["https://app.example.com"]
+TRUSTED_HOSTS=["api.example.com"]
 ```
+
+`VEYRA_API_KEY` is the API-key authentication option when Supabase Auth is
+not configured; production requires it to be at least 32 characters. Use
+`CORS_ORIGINS` (not `FRONTEND_ORIGINS`) and `TRUSTED_HOSTS` to specify explicit
+production domains. Keep the database URL and all Supabase/service-role keys
+backend-only.
 
 Frontend:
 
