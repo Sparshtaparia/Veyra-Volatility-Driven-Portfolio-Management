@@ -2,23 +2,49 @@
 Phase 9: Pipeline Backtest Engine Tests
 """
 from datetime import date
+from math import sin
+
 import pandas as pd
 import pytest
 
+import backend.services.volatility_evaluation_service as volatility_service_module
 from quant_engine.backtest.models import PipelineBacktestConfig
 from quant_engine.backtest.pipeline_engine import PipelineBacktester
 from quant_engine.data.models import MarketBar
 from quant_engine.data.provider import MockProvider
+from quant_engine.regimes.service import RegimeService
+from quant_engine.regimes.threshold import RollingQuantileThreshold
+
+
+class BacktestMockProvider(MockProvider):
+    """Mock history provider with the latest-price helper used by paper execution."""
+
+    def get_latest_price(self, ticker, as_of_date):
+        bars = self.get_history(ticker, date(1900, 1, 1), as_of_date)
+        if not bars:
+            raise ValueError(f"No price available for {ticker}")
+        return bars[-1].close
 
 
 @pytest.fixture
-def mock_data():
+def mock_data(monkeypatch):
+    # A new in-memory integration run has no persisted stress history. Use the
+    # same rolling-quantile strategy with a deterministic one-point bootstrap;
+    # production retains its normal 21-observation requirement.
+    monkeypatch.setattr(
+        volatility_service_module,
+        "RegimeService",
+        lambda: RegimeService(
+            threshold_strategy=RollingQuantileThreshold(minimum_history=1)
+        ),
+    )
     dates = pd.date_range(start="2020-01-01", end="2022-01-01", freq="B").date
     bars = []
     
-    for t in ["AAPL", "MSFT", "GOOG"]:
-        price = 100.0
-        for d in dates:
+    assets = [("CASH", 1.0), ("AAPL", 100.0), ("MSFT", 100.0), ("GOOG", 100.0)]
+    for asset_index, (t, starting_price) in enumerate(assets):
+        price = starting_price
+        for day_index, d in enumerate(dates):
             bars.append(
                 MarketBar(
                     ticker=t,
@@ -30,8 +56,11 @@ def mock_data():
                     volume=1000,
                 )
             )
-            price *= 1.0001  # Upward drift
-    return MockProvider(bars)
+            # Reproducible drift with small cyclical variation. This avoids
+            # zero-variance returns while remaining deterministic.
+            daily_return = 0.0003 + 0.0015 * sin((day_index + 3 * asset_index) / 13.0)
+            price *= 1.0 + daily_return
+    return BacktestMockProvider(bars)
 
 
 def test_pipeline_backtest_initialization(mock_data):

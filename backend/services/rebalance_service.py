@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from backend.services.portfolio_service import PortfolioService
-from backend.services.signal_evaluation_service import SignalEvaluationService
+from backend.services.signal_decision_evaluation_service import SignalEvaluationService
 from database.models import RebalanceEventModel, TradeModel, PortfolioSnapshotModel, VolatilityStateModel
 from quant_engine.data.provider import MarketDataProvider
 from quant_engine.rebalance.service import RebalancePlanner
@@ -19,7 +19,13 @@ class RebalanceService:
         self.planner = RebalancePlanner()
         self.executor = PaperExecutor()
 
-    def execute_paper_rebalance(self, portfolio_id: str, as_of_date: date):
+    def execute_paper_rebalance(
+        self,
+        portfolio_id: str,
+        as_of_date: date,
+        *,
+        evaluation_result=None,
+    ):
         # 1. Fetch current portfolio
         portfolio = self.portfolio_service.repo.get_portfolio(portfolio_id)
         if not portfolio:
@@ -38,7 +44,7 @@ class RebalanceService:
         ]
 
         # 2. Run Phase 1-6 Pipeline to get target allocation
-        eval_result = self.signal_service.evaluate(portfolio_id, as_of_date)
+        eval_result = evaluation_result or self.signal_service.evaluate(portfolio_id, as_of_date)
         allocation = eval_result.allocation_result
 
         if allocation.decision == "HOLD":

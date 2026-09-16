@@ -15,7 +15,7 @@ from sqlalchemy.pool import StaticPool
 
 from backend.services.portfolio_service import PortfolioService
 from backend.services.rebalance_service import RebalanceService
-from backend.services.signal_evaluation_service import SignalEvaluationService
+from backend.services.signal_decision_evaluation_service import SignalEvaluationService
 from database.models import Base, PortfolioSnapshotModel, FeedbackUpdateModel
 from quant_engine.backtest.models import (
     BacktestMetrics,
@@ -152,10 +152,14 @@ class PipelineBacktester:
                 
                 if eval_result.allocation_result.decision != "HOLD":
                     # Phase 7 & 8: Rebalance and Feedback
-                    rebalance_result = rebalance_service.execute_paper_rebalance(portfolio_id, eval_date)
+                    rebalance_result = rebalance_service.execute_paper_rebalance(
+                        portfolio_id,
+                        eval_date,
+                        evaluation_result=eval_result,
+                    )
                     
                     # Apply slippage & transaction costs (override default paper execution costs)
-                    turnover = rebalance_result.plan.total_turnover
+                    turnover = eval_result.allocation_result.total_turnover
                     transaction_cost = (
                         start_val 
                         * turnover 
