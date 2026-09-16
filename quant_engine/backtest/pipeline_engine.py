@@ -81,6 +81,18 @@ class PipelineBacktester:
             market_value=100000.0,
             weight=1.0
         )
+        
+        # Add universe with 0 weight so volatility service evaluates them
+        for ticker in self.config.universe:
+            portfolio_service.repo.add_holding(
+                portfolio_id=portfolio_id,
+                ticker=ticker,
+                quantity=0.0,
+                average_price=1.0,
+                current_price=1.0,
+                market_value=0.0,
+                weight=0.0
+            )
 
         signal_service = SignalEvaluationService(db, self.provider)
         rebalance_service = RebalanceService(db, self.provider)
@@ -114,6 +126,9 @@ class PipelineBacktester:
             return bars[-1].close if bars else 1.0
 
         current_holdings = {"CASH": 100000.0}
+        for ticker in self.config.universe:
+            current_holdings[ticker] = 0.0
+            
         portfolio_value_series = {}
         turnovers = []
         
@@ -153,6 +168,11 @@ class PipelineBacktester:
                         h["ticker"]: h["quantity"] 
                         for h in rebalance_result.simulated_holdings
                     }
+                    
+                    # Ensure all universe tickers remain in current_holdings for evaluation
+                    for ticker in self.config.universe:
+                        if ticker not in current_holdings:
+                            current_holdings[ticker] = 0.0
                     
                     # Deduct transaction cost from CASH
                     if "CASH" in current_holdings:
@@ -283,8 +303,6 @@ def _sync_holdings(db, portfolio_id: str, current_holdings: dict, as_of_date: da
         total_val = 1.0
         
     for ticker, qty in current_holdings.items():
-        if qty <= 0 and ticker != "CASH":
-            continue
         price = get_price(ticker, as_of_date)
         market_value = qty * price
         holding = HoldingModel(
@@ -294,7 +312,7 @@ def _sync_holdings(db, portfolio_id: str, current_holdings: dict, as_of_date: da
             average_price=price,
             current_price=price,
             market_value=market_value,
-            weight=market_value / total_val
+            weight=market_value / total_val if total_val > 0 else 0.0
         )
         db.add(holding)
     db.commit()
