@@ -9,6 +9,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from backend.dependencies.auth import CurrentUser, require_auth
 from backend.dependencies.db import get_db
 from backend.dependencies.market_data import get_market_data_provider
 from backend.exceptions import PortfolioNotFoundError
@@ -28,6 +29,7 @@ def get_portfolio_features(
     end_date: date = Query(..., description="End date for feature calculation"),
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
     """
     Orchestration endpoint:
@@ -36,7 +38,7 @@ def get_portfolio_features(
     """
     portfolio_service = PortfolioService(db)
     try:
-        portfolio_service.get_portfolio(portfolio_id)
+        portfolio_service.get_portfolio(portfolio_id, user_id=user.user_id)
 
         # Validate that ticker is actually in the portfolio
         holdings = portfolio_service.repo.get_holdings(portfolio_id)

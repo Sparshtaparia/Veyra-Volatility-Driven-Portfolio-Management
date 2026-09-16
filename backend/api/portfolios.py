@@ -2,11 +2,15 @@
 backend/api/portfolios.py
 =========================
 FastAPI routes for Portfolios and Evaluations.
+
+All routes require a valid Supabase JWT via `require_auth`.
+Users can only access/modify portfolios they own.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.dependencies.auth import CurrentUser, require_auth
 from backend.dependencies.db import get_db
 from backend.exceptions import (
     EvaluationNotFoundError,
@@ -28,9 +32,15 @@ router = APIRouter(prefix="/portfolios", tags=["portfolios"])
 
 
 @router.post("", response_model=PortfolioResponse, status_code=status.HTTP_201_CREATED)
-def create_portfolio(request: CreatePortfolioRequest, db: Session = Depends(get_db)):
+def create_portfolio(
+    request: CreatePortfolioRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
     service = PortfolioService(db)
-    portfolio = service.create_portfolio(name=request.name, currency=request.currency)
+    portfolio = service.create_portfolio(
+        name=request.name, currency=request.currency, user_id=user.user_id
+    )
     return PortfolioResponse(
         portfolio_id=portfolio.id,
         name=portfolio.name,
@@ -39,10 +49,33 @@ def create_portfolio(request: CreatePortfolioRequest, db: Session = Depends(get_
     )
 
 
+@router.get("", response_model=list[PortfolioResponse])
+def list_portfolios(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    service = PortfolioService(db)
+    portfolios = service.list_portfolios_for_user(user.user_id)
+    return [
+        PortfolioResponse(
+            portfolio_id=p.id,
+            name=p.name,
+            currency=p.currency,
+            created_at=p.created_at,
+        )
+        for p in portfolios
+    ]
+
+
 @router.post(
     "/{portfolio_id}/holdings", response_model=HoldingResponse, status_code=status.HTTP_201_CREATED
 )
-def add_holding(portfolio_id: str, request: AddHoldingRequest, db: Session = Depends(get_db)):
+def add_holding(
+    portfolio_id: str,
+    request: AddHoldingRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
     service = PortfolioService(db)
     try:
         holding = service.add_holding(
@@ -51,6 +84,7 @@ def add_holding(portfolio_id: str, request: AddHoldingRequest, db: Session = Dep
             quantity=request.quantity,
             average_price=request.average_price,
             current_price=request.current_price,
+            user_id=user.user_id,
         )
         return HoldingResponse(
             id=holding.id,
@@ -73,8 +107,18 @@ def add_holding(portfolio_id: str, request: AddHoldingRequest, db: Session = Dep
     status_code=status.HTTP_202_ACCEPTED,
 )
 def evaluate_portfolio(
-    portfolio_id: str, request: EvaluatePortfolioRequest, db: Session = Depends(get_db)
+    portfolio_id: str,
+    request: EvaluatePortfolioRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
 ):
+    # Verify ownership before evaluating
+    portfolio_service = PortfolioService(db)
+    try:
+        portfolio_service.get_portfolio(portfolio_id, user_id=user.user_id)
+    except PortfolioNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
     service = EvaluationService(db)
     try:
         domain_request = EvaluationRequest(
@@ -100,12 +144,21 @@ def evaluate_portfolio(
 
 
 @router.get("/{portfolio_id}/evaluations/{evaluation_id}", response_model=EvaluationResponse)
-def get_evaluation(portfolio_id: str, evaluation_id: str, db: Session = Depends(get_db)):
+def get_evaluation(
+    portfolio_id: str,
+    evaluation_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
     service = EvaluationService(db)
     try:
         result = service.get_evaluation(evaluation_id=evaluation_id)
         if result.portfolio_id != portfolio_id:
             raise HTTPException(status_code=404, detail="Evaluation not found for this portfolio")
+
+        # Verify ownership
+        portfolio_service = PortfolioService(db)
+        portfolio_service.get_portfolio(portfolio_id, user_id=user.user_id)
 
         return EvaluationResponse(
             evaluation_id=result.evaluation_id,
@@ -118,10 +171,23 @@ def get_evaluation(portfolio_id: str, evaluation_id: str, db: Session = Depends(
         )
     except EvaluationNotFoundError:
         raise HTTPException(status_code=404, detail="Evaluation not found")
+    except PortfolioNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
 
 
 @router.get("/{portfolio_id}/evaluations", response_model=list[EvaluationResponse])
-def list_evaluations(portfolio_id: str, db: Session = Depends(get_db)):
+def list_evaluations(
+    portfolio_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    # Verify ownership first
+    portfolio_service = PortfolioService(db)
+    try:
+        portfolio_service.get_portfolio(portfolio_id, user_id=user.user_id)
+    except PortfolioNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
     try:
         return EvaluationService(db).list_evaluations(portfolio_id)
     except PortfolioNotFoundError:

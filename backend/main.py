@@ -21,7 +21,6 @@ from backend.exceptions import (
     PortfolioNotFoundError,
 )
 from backend.middleware.logging import LoggingMiddleware
-from backend.middleware.security import ApiSecurityMiddleware
 from backend.operations.health import database_readiness
 from backend.operations.logging import configure_logging
 from backend.operations.scheduler import scheduler_service
@@ -52,11 +51,6 @@ app = FastAPI(
 
 # Middleware
 app.add_middleware(LoggingMiddleware)
-app.add_middleware(
-    ApiSecurityMiddleware,
-    api_prefix=settings.api_prefix,
-    api_key=settings.api_key.get_secret_value() if settings.api_key else None,
-)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
 app.add_middleware(
     CORSMiddleware,
@@ -65,6 +59,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# NOTE: Route-level JWT authentication is enforced via `require_auth` dependency
+# in each protected API router. Health endpoints remain public.
 
 # Routers
 app.include_router(portfolios.router, prefix=settings.api_prefix)

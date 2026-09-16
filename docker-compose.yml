@@ -1,7 +1,20 @@
 services:
+  # ================================================================
+  # LOCAL DEVELOPMENT / TESTING DATABASE ONLY
+  # ================================================================
+  # This postgres service is for local development and automated
+  # tests ONLY. It is NOT the production database.
+  #
+  # PRODUCTION DATABASE: Supabase PostgreSQL
+  # Set DATABASE_URL to the Supabase Transaction Pooler connection
+  # string in your .env file (see .env.example).
+  #
+  # To run against Supabase locally, do NOT start this service.
+  # Simply set DATABASE_URL in .env and run `docker compose up api`.
+  # ================================================================
   postgres:
     image: postgres:15-alpine
-    container_name: veyra-postgres
+    container_name: veyra-postgres-dev
     environment:
       POSTGRES_DB: veyra
       POSTGRES_USER: veyra
@@ -17,19 +30,31 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+    profiles:
+      - local-dev
 
   api:
     build:
       context: .
       dockerfile: Dockerfile
     environment:
+      # --- Database ---
+      # For production: set DATABASE_URL to your Supabase Transaction Pooler URL.
+      # For local dev: use the postgres service above (profile: local-dev).
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://veyra:veyra@postgres:5432/veyra}
-      APP_ENV: production
-      LOG_LEVEL: INFO
+
+      # --- Supabase Auth ---
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_JWKS_URL: ${SUPABASE_JWKS_URL:-}
+
+      # --- Application ---
+      APP_ENV: ${APP_ENV:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
       API_PREFIX: /api/v1
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:8080"]}
       TRUSTED_HOSTS: ${TRUSTED_HOSTS:-["localhost","127.0.0.1"]}
-      VEYRA_API_KEY: ${VEYRA_API_KEY:-}
       FAMA_FRENCH_DATA_PATH: ${FAMA_FRENCH_DATA_PATH:-}
       STRUCTURED_JSON_LOGS: "true"
       SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-false}
@@ -41,9 +66,9 @@ services:
     command: ["sh", "-c", "alembic upgrade head && uvicorn backend.main:app --host 0.0.0.0 --port 8000"]
     ports:
       - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # NOTE: No hard dependency on `postgres` service.
+    # When DATABASE_URL points to Supabase, the local postgres is not needed.
+    # For local-dev with the postgres profile: docker compose --profile local-dev up
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')"]
       interval: 15s

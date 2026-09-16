@@ -16,8 +16,12 @@ class PortfolioRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_portfolio(self, portfolio_id: str, name: str, currency: str) -> PortfolioModel:
-        db_portfolio = PortfolioModel(id=portfolio_id, name=name, currency=currency)
+    def create_portfolio(
+        self, portfolio_id: str, name: str, currency: str, user_id: str | None = None
+    ) -> PortfolioModel:
+        db_portfolio = PortfolioModel(
+            id=portfolio_id, name=name, currency=currency, user_id=user_id
+        )
         self.db.add(db_portfolio)
         self.db.commit()
         self.db.refresh(db_portfolio)
@@ -30,6 +34,14 @@ class PortfolioRepository:
 
     def list_portfolios(self) -> list[PortfolioModel]:
         return list(self.db.execute(select(PortfolioModel)).scalars().all())
+
+    def list_portfolios_by_user(self, user_id: str) -> list[PortfolioModel]:
+        """Return only portfolios owned by the given Supabase user."""
+        return list(
+            self.db.execute(
+                select(PortfolioModel).where(PortfolioModel.user_id == user_id)
+            ).scalars().all()
+        )
 
     def update_portfolio(self, portfolio: PortfolioModel) -> PortfolioModel:
         self.db.commit()

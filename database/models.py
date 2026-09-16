@@ -45,11 +45,17 @@ class Base(DeclarativeBase):
 class PortfolioModel(Base):
     """
     Persistent state of a portfolio.
+
+    user_id links the portfolio to a Supabase auth.users identity.
+    Authorization (user can only access their own portfolio) is enforced
+    at the FastAPI service layer.
     """
 
     __tablename__ = "portfolios"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    """Supabase auth.users UUID. Nullable for backwards-compatibility with existing rows."""
     name: Mapped[str] = mapped_column(String, nullable=False)
     total_value: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     currency: Mapped[str] = mapped_column(String, nullable=False)

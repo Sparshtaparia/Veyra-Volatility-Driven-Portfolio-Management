@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.dependencies.auth import CurrentUser, require_auth
 from backend.dependencies.db import get_db
 from backend.dependencies.market_data import get_market_data_provider
 from backend.exceptions import (
@@ -77,6 +78,7 @@ def evaluate_signals(
     request: SignalDecisionEvaluationRequest,
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
     try:
         result = _signal_service(db, provider).evaluate(portfolio_id, request.as_of_date, evaluation_id=request.evaluation_id)
@@ -116,6 +118,7 @@ def evaluate_volatility(
     request: VolatilityEvaluationRequest,
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
     try:
         result = _service(db, provider).evaluate(
@@ -136,6 +139,7 @@ def get_evaluation_volatility(
     evaluation_id: UUID,
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
     try:
         result = _service(db, provider).get_evaluation(evaluation_id)
@@ -152,6 +156,7 @@ def get_evaluation_regime(
     evaluation_id: UUID,
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
     try:
         result = _service(db, provider).get_regime(evaluation_id)
@@ -168,6 +173,7 @@ def get_latest_portfolio_regime(
     portfolio_id: str,
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
     try:
         result = _service(db, provider).get_latest_regime(portfolio_id)

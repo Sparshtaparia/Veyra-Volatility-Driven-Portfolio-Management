@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     database_url: str
     """Full SQLAlchemy connection string.
-    Example: postgresql+psycopg2://veyra:veyra@localhost:5432/veyra
+    For Supabase: postgresql+psycopg2://postgres.PROJECT_REF:PASSWORD@POOLER_HOST:6543/postgres?sslmode=require
     """
 
     database_pool_size: int = Field(default=5, ge=1, le=50)
@@ -43,6 +43,29 @@ class Settings(BaseSettings):
     database_pool_timeout_seconds: int = Field(default=30, ge=1, le=120)
     database_pool_recycle_seconds: int = Field(default=900, ge=60, le=3600)
     database_connect_timeout_seconds: int = Field(default=10, ge=1, le=60)
+
+    # ------------------------------------------------------------------
+    # Supabase
+    # ------------------------------------------------------------------
+    supabase_url: str | None = Field(default=None)
+    """Supabase project URL. Example: https://PROJECT_REF.supabase.co"""
+
+    supabase_anon_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY"),
+    )
+    """Supabase publishable (anon) key. Safe to use in server-side requests."""
+
+    supabase_service_role_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"),
+    )
+    """Supabase service-role (secret) key. NEVER expose to frontend."""
+
+    supabase_jwks_url: str | None = Field(default=None)
+    """Supabase JWKS endpoint for JWT verification.
+    Example: https://PROJECT_REF.supabase.co/auth/v1/.well-known/jwks.json
+    """
 
     # ------------------------------------------------------------------
     # Application
@@ -60,10 +83,6 @@ class Settings(BaseSettings):
     """Browser origins allowed to call the API."""
 
     trusted_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
-    api_key: SecretStr | None = Field(
-        default=None,
-        validation_alias=AliasChoices("VEYRA_API_KEY", "API_KEY"),
-    )
     structured_json_logs: bool = True
 
     market_data_provider: str = "yfinance"
@@ -179,8 +198,10 @@ class Settings(BaseSettings):
         if self.app_env == "production":
             if not self.database_url.startswith(("postgresql://", "postgresql+psycopg2://")):
                 raise ValueError("production requires a PostgreSQL DATABASE_URL")
-            if self.api_key is None or len(self.api_key.get_secret_value()) < 32:
-                raise ValueError("production requires VEYRA_API_KEY with at least 32 characters")
+            if not self.supabase_url or not self.supabase_jwks_url:
+                raise ValueError("production requires SUPABASE_URL and SUPABASE_JWKS_URL")
+            if not self.supabase_service_role_key:
+                raise ValueError("production requires SUPABASE_SERVICE_ROLE_KEY")
             if "*" in self.cors_origins or "*" in self.trusted_hosts:
                 raise ValueError("production CORS origins and trusted hosts must be explicit")
             if self.scheduler_enabled and not self.fama_french_data_path:

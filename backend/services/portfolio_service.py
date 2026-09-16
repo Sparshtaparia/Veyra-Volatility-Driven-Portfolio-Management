@@ -2,6 +2,10 @@
 backend/services/portfolio_service.py
 =====================================
 Business logic for Portfolios.
+
+Authorization rule: a user may only access/modify portfolios where
+portfolio.user_id == their own Supabase user_id.  ADMIN users bypass
+this check (handled at the API layer via require_admin).
 """
 
 import uuid
@@ -19,9 +23,24 @@ class PortfolioService:
     def __init__(self, db: Session):
         self.repo = PortfolioRepository(db)
 
-    def create_portfolio(self, name: str, currency: str) -> PortfolioModel:
+    def create_portfolio(
+        self, name: str, currency: str, user_id: str | None = None
+    ) -> PortfolioModel:
         portfolio_id = f"port-{uuid.uuid4().hex[:8]}"
-        return self.repo.create_portfolio(portfolio_id=portfolio_id, name=name, currency=currency)
+        return self.repo.create_portfolio(
+            portfolio_id=portfolio_id, name=name, currency=currency, user_id=user_id
+        )
+
+    def _assert_ownership(self, portfolio: PortfolioModel, user_id: str | None) -> None:
+        """
+        Raise PortfolioNotFoundError if the portfolio does not belong to the
+        requesting user.  When user_id is None (e.g. internal/admin calls),
+        ownership is not enforced.
+        """
+        if user_id is not None and portfolio.user_id is not None:
+            if portfolio.user_id != user_id:
+                # Surface as 404 to avoid leaking existence to unauthorized users.
+                raise PortfolioNotFoundError(portfolio.id)
 
     def add_holding(
         self,
@@ -30,10 +49,13 @@ class PortfolioService:
         quantity: float,
         average_price: float,
         current_price: float,
+        user_id: str | None = None,
     ) -> HoldingModel:
         portfolio = self.repo.get_portfolio(portfolio_id)
         if not portfolio:
             raise PortfolioNotFoundError(portfolio_id)
+
+        self._assert_ownership(portfolio, user_id)
 
         if quantity < 0 or average_price < 0 or current_price < 0:
             raise InvalidPortfolioError("Quantity and prices must be non-negative.")
@@ -74,10 +96,12 @@ class PortfolioService:
                 h.weight = 0.0
             self.repo.update_holding(h)
 
-    def to_domain(self, portfolio_id: str, as_of_date: date) -> Portfolio:
+    def to_domain(self, portfolio_id: str, as_of_date: date, user_id: str | None = None) -> Portfolio:
         portfolio = self.repo.get_portfolio(portfolio_id)
         if not portfolio:
             raise PortfolioNotFoundError(portfolio_id)
+
+        self._assert_ownership(portfolio, user_id)
 
         holdings = self.repo.get_holdings(portfolio_id)
         domain_holdings = [
@@ -94,8 +118,12 @@ class PortfolioService:
             as_of_date=as_of_date,
         )
 
-    def get_portfolio(self, portfolio_id: str) -> PortfolioModel:
+    def get_portfolio(self, portfolio_id: str, user_id: str | None = None) -> PortfolioModel:
         portfolio = self.repo.get_portfolio(portfolio_id)
         if not portfolio:
             raise PortfolioNotFoundError(portfolio_id)
+        self._assert_ownership(portfolio, user_id)
         return portfolio
+
+    def list_portfolios_for_user(self, user_id: str) -> list[PortfolioModel]:
+        return self.repo.list_portfolios_by_user(user_id)
