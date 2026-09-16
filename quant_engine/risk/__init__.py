@@ -1,6 +1,4 @@
-"""Portfolio risk-state calculation."""
+from quant_engine.risk.service import CompositeRiskService
+from quant_engine.risk.models import CompositeRiskOutput, RiskState, RiskComponents
 
-from quant_engine.risk.engine import RiskStateEngine
-from quant_engine.risk.models import RiskConfig, RiskState
-
-__all__ = ["RiskConfig", "RiskState", "RiskStateEngine"]
+__all__ = ["CompositeRiskService", "CompositeRiskOutput", "RiskState", "RiskComponents"]
