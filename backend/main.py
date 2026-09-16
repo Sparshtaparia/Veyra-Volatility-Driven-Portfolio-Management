@@ -55,7 +55,14 @@ app.add_middleware(LoggingMiddleware)
 app.add_middleware(
     ApiSecurityMiddleware,
     api_prefix=settings.api_prefix,
-    api_key=settings.api_key.get_secret_value() if settings.api_key else None,
+    # Supabase-authenticated routes validate Bearer JWTs with require_auth.
+    # Keep API-key middleware for deliberately key-only service deployments,
+    # rather than requiring both credentials for the same browser request.
+    api_key=(
+        settings.api_key.get_secret_value()
+        if settings.api_key and not settings.supabase_jwks_url
+        else None
+    ),
 )
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
 app.add_middleware(

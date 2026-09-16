@@ -128,6 +128,60 @@ class YahooChartProvider(MarketDataProvider):
             ) from exc
 
 
+class AlphaVantageProvider(MarketDataProvider):
+    """Independent daily OHLCV adapter for Alpha Vantage.
+
+    Alpha Vantage is intentionally optional: callers must provide an API key.
+    Its data path is independent of Yahoo, making it suitable for a real
+    fallback when Yahoo rate-limits both of the Yahoo-backed adapters.
+    """
+
+    def __init__(self, api_key: str, timeout_seconds: float = 15.0) -> None:
+        if not api_key.strip():
+            raise ValueError("Alpha Vantage API key must not be empty")
+        if timeout_seconds <= 0.0:
+            raise ValueError("timeout_seconds must be positive")
+        self.api_key = api_key
+        self.timeout_seconds = timeout_seconds
+
+    def get_history(self, ticker: str, start_date: date, end_date: date) -> list[MarketBar]:
+        url = (
+            "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY"
+            f"&symbol={quote(ticker)}&outputsize=full&apikey={quote(self.api_key)}"
+        )
+        request = Request(url, headers={"User-Agent": "Veyra/0.2 market-data"})
+        with urlopen(request, timeout=self.timeout_seconds) as response:
+            payload = json.loads(response.read())
+        series = payload.get("Time Series (Daily)")
+        if not isinstance(series, dict):
+            message = (
+                payload.get("Note") or payload.get("Information") or payload.get("Error Message")
+            )
+            raise RuntimeError(
+                f"AlphaVantageProvider returned no daily data for {ticker}: {message}"
+            )
+        bars = []
+        try:
+            for timestamp_text, values in series.items():
+                timestamp = date.fromisoformat(timestamp_text)
+                if not start_date <= timestamp <= end_date:
+                    continue
+                bars.append(
+                    MarketBar(
+                        ticker=ticker,
+                        timestamp=timestamp,
+                        open=float(values["1. open"]),
+                        high=float(values["2. high"]),
+                        low=float(values["3. low"]),
+                        close=float(values["4. close"]),
+                        volume=float(values["5. volume"]),
+                    )
+                )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RuntimeError(f"Malformed Alpha Vantage bar for {ticker}") from exc
+        return sorted(bars, key=lambda item: item.timestamp)
+
+
 class MockProvider(MarketDataProvider):
     """
     Deterministic mock provider for testing.

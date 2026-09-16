@@ -74,6 +74,28 @@ def test_retries_primary_then_uses_configured_fallback() -> None:
     provider.close()
 
 
+def test_exhausts_primary_then_secondary_then_tertiary() -> None:
+    primary = SequenceProvider([RuntimeError("primary unavailable")])
+    secondary = SequenceProvider([RuntimeError("secondary unavailable")])
+    tertiary = SequenceProvider([[bar(9)]])
+    provider = ResilientMarketDataProvider(
+        primary,
+        fallback=secondary,
+        tertiary=tertiary,
+        primary_name="yfinance",
+        fallback_name="alpha_vantage",
+        tertiary_name="yahoo_chart",
+        policy=policy(attempts=1),
+        sleep=lambda _seconds: None,
+    )
+
+    assert provider.get_history("AAA", date(2026, 1, 1), date(2026, 1, 10)) == [bar(9)]
+    assert (primary.calls, secondary.calls, tertiary.calls) == (1, 1, 1)
+    assert provider.last_provider_for("AAA") == "yahoo_chart"
+    assert provider.provider_provenance() == {"AAA": "yahoo_chart"}
+    provider.close()
+
+
 def test_stale_market_data_is_rejected() -> None:
     provider = ResilientMarketDataProvider(
         SequenceProvider([[bar(2)]]),

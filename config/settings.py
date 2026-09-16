@@ -89,7 +89,9 @@ class Settings(BaseSettings):
     structured_json_logs: bool = True
 
     market_data_provider: str = "yfinance"
+    market_data_secondary_provider: str | None = "alpha_vantage"
     market_data_fallback_provider: str | None = "yahoo_chart"
+    alpha_vantage_api_key: SecretStr | None = None
     market_data_retry_attempts: int = Field(default=3, ge=1, le=8)
     market_data_backoff_seconds: float = Field(default=0.25, ge=0.0, le=10.0)
     market_data_max_backoff_seconds: float = Field(default=4.0, ge=0.0, le=60.0)
@@ -104,8 +106,8 @@ class Settings(BaseSettings):
     scheduled_volatility_cron: str = "0 */6 * * 1-5"
     scheduler_run_lock_timeout_minutes: int = Field(default=120, ge=5, le=1440)
 
-    fama_french_data_path: str | None = None
-    """Optional path to a decimal-return five-factor CSV used by Phase 4."""
+    fama_french_data_path: str = "data/fama_french/F-F_Research_Data_5_Factors_2x3_daily.csv"
+    """Repo-relative path to a decimal-return five-factor CSV used by Phase 4."""
 
     # ------------------------------------------------------------------
     # Business defaults
@@ -181,7 +183,7 @@ class Settings(BaseSettings):
         if value is None or not value.strip():
             return None
         normalized = value.strip().lower()
-        if normalized not in {"yfinance", "yahoo_chart"}:
+        if normalized not in {"yfinance", "alpha_vantage", "yahoo_chart"}:
             raise ValueError(f"unsupported market-data provider: {value}")
         return normalized
 

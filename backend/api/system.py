@@ -30,6 +30,7 @@ def system_status(
         market_data={
             "provider": provider.name,
             "cache": provider.cache_stats(),
+            "last_successful_providers": provider.provider_provenance(),
         },
         scheduled_run_counts=repository.counts_by_status(),
         recent_runs=[

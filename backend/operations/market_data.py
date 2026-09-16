@@ -71,21 +71,23 @@ class ResilientMarketDataProvider(MarketDataProvider):
         primary: MarketDataProvider,
         *,
         fallback: MarketDataProvider | None = None,
+        tertiary: MarketDataProvider | None = None,
         policy: ProviderPolicy | None = None,
         primary_name: str | None = None,
         fallback_name: str | None = None,
+        tertiary_name: str | None = None,
         sleep: Callable[[float], None] = time.sleep,
         monotonic: Callable[[], float] = time.monotonic,
     ) -> None:
         self.primary = primary
         self.fallback = fallback
+        self.tertiary = tertiary
         self.policy = policy or ProviderPolicy()
         self.primary_name = primary_name or type(primary).__name__
         self.fallback_name = fallback_name or (type(fallback).__name__ if fallback else None)
-        self.name = (
-            f"{self.primary_name}->{self.fallback_name}"
-            if self.fallback_name
-            else self.primary_name
+        self.tertiary_name = tertiary_name or (type(tertiary).__name__ if tertiary else None)
+        self.name = "->".join(
+            name for name in (self.primary_name, self.fallback_name, self.tertiary_name) if name
         )
         self._sleep = sleep
         self._monotonic = monotonic
@@ -109,6 +111,8 @@ class ResilientMarketDataProvider(MarketDataProvider):
         providers = [(self.primary_name, self.primary)]
         if self.fallback is not None and self.fallback_name is not None:
             providers.append((self.fallback_name, self.fallback))
+        if self.tertiary is not None and self.tertiary_name is not None:
+            providers.append((self.tertiary_name, self.tertiary))
         failures: list[str] = []
         for provider_name, provider in providers:
             try:
@@ -134,6 +138,10 @@ class ResilientMarketDataProvider(MarketDataProvider):
 
     def last_provider_for(self, ticker: str) -> str | None:
         return self._last_provider.get(ticker.strip().upper())
+
+    def provider_provenance(self) -> dict[str, str]:
+        """Return the provider that supplied each cached/requested ticker."""
+        return dict(self._last_provider)
 
     def cache_stats(self) -> dict[str, int]:
         with self._cache_lock:

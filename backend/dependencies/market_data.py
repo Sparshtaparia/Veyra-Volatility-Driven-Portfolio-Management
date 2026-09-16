@@ -5,29 +5,44 @@ from functools import lru_cache
 from backend.operations.market_data import ProviderPolicy, ResilientMarketDataProvider
 from config.settings import get_settings
 from quant_engine.data.provider import (
+    AlphaVantageProvider,
     MarketDataProvider,
     YahooChartProvider,
     YFinanceProvider,
 )
 
 
-def _provider(name: str) -> MarketDataProvider:
+def _provider(name: str) -> MarketDataProvider | None:
+    settings = get_settings()
     if name == "yfinance":
-        return YFinanceProvider(get_settings().market_data_timeout_seconds)
+        return YFinanceProvider(settings.market_data_timeout_seconds)
+    if name == "alpha_vantage":
+        if settings.alpha_vantage_api_key is None:
+            return None
+        return AlphaVantageProvider(
+            settings.alpha_vantage_api_key.get_secret_value(), settings.market_data_timeout_seconds
+        )
     if name == "yahoo_chart":
-        return YahooChartProvider(get_settings().market_data_timeout_seconds)
+        return YahooChartProvider(settings.market_data_timeout_seconds)
     raise ValueError(f"unsupported market-data provider: {name}")
 
 
 @lru_cache(maxsize=1)
 def get_market_data_provider() -> ResilientMarketDataProvider:
     settings = get_settings()
-    fallback_name = settings.market_data_fallback_provider
+    secondary_name = settings.market_data_secondary_provider
+    tertiary_name = settings.market_data_fallback_provider
+    primary = _provider(settings.market_data_provider)
+    assert primary is not None
+    secondary = _provider(secondary_name) if secondary_name else None
+    tertiary = _provider(tertiary_name) if tertiary_name else None
     return ResilientMarketDataProvider(
-        _provider(settings.market_data_provider),
-        fallback=_provider(fallback_name) if fallback_name else None,
+        primary,
+        fallback=secondary,
+        tertiary=tertiary,
         primary_name=settings.market_data_provider,
-        fallback_name=fallback_name,
+        fallback_name=secondary_name if secondary else None,
+        tertiary_name=tertiary_name if tertiary else None,
         policy=ProviderPolicy(
             attempts=settings.market_data_retry_attempts,
             base_backoff_seconds=settings.market_data_backoff_seconds,

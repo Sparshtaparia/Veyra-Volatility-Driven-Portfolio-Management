@@ -602,6 +602,36 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 The service-role/secret key must remain backend-only.
 
+### Local Fama-French data
+
+Phase 4 reads decimal daily five-factor returns from the repo-relative path
+`data/fama_french/F-F_Research_Data_5_Factors_2x3_daily.csv` by default. Fetch
+and validate the official Ken French daily dataset once for local development:
+
+```bash
+python -m quant_engine.factors.setup
+```
+
+The utility caches the file locally and validates dates plus `Mkt-RF`, `SMB`,
+`HML`, `RMW`, `CMA`, and `RF`; it does not create synthetic factor data. Set
+`FAMA_FRENCH_DATA_PATH` only to override that location.
+
+### Market-data fallback
+
+The normal order is `yfinance → alpha_vantage → yahoo_chart`. Alpha Vantage is
+independent of Yahoo but requires `ALPHA_VANTAGE_API_KEY`; without it the
+secondary provider is skipped and Yahoo Chart remains the tertiary fallback.
+`/api/v1/system/status` reports the configured chain and the last successful
+provider by ticker.
+
+### Frontend authentication
+
+The frontend uses only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to get
+the current session, then sends its access token as `Authorization: Bearer` on
+API calls. The backend verifies the JWT against `SUPABASE_JWKS_URL` and uses
+the `sub` claim for portfolio ownership. Never add service-role or Veyra API
+keys to `VITE_` variables.
+
 ---
 
 ## 12. Database Domain
