@@ -11,10 +11,24 @@ from quant_engine.signals.service import SignalService
 from quant_engine.volatility.models import MarketRegime
 
 
+from quant_engine.reliability.models import ReliabilityState
+from quant_engine.risk.models import RiskState
+
 def test_signal_evaluation_api(client: TestClient, monkeypatch):
     base = SignalService().generate(FeatureSnapshot(ticker="TCS", timestamp=date(2026, 9, 16), rsi=70, atr=2, macd_histogram=1, bollinger_band_width=.2))
-    control = StateCoupledControl().apply(SignalRegulator().regulate(base, regime=MarketRegime.NORMAL, volatility_ratio=1), volatility_state=.02)
-    result = SignalDecisionEvaluationDTO(UUID("11111111-1111-1111-1111-111111111111"), "port-1", date(2026, 9, 16), [control])
+    control = StateCoupledControl().apply(
+        SignalRegulator().regulate(base, regime=MarketRegime.NORMAL, volatility_ratio=1), 
+        volatility_state=.02, 
+        risk_state=RiskState.LOW_RISK, 
+        reliability_state=ReliabilityState.HIGH
+    )
+    result = SignalDecisionEvaluationDTO(
+        UUID("11111111-1111-1111-1111-111111111111"), 
+        "port-1", 
+        date(2026, 9, 16), 
+        [control], 
+        {"composite_score": 0.5, "risk_state": "MODERATE_RISK", "components": {"volatility_exposure": 0.5, "concentration": 0.5}}
+    )
     class Stub: 
         def evaluate(self, *args, **kwargs): return result
     monkeypatch.setattr(api, "_signal_service", lambda db, provider: Stub())

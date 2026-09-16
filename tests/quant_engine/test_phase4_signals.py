@@ -40,11 +40,14 @@ def test_attenuation_is_bounded_and_high_stress_reduces_signal():
     assert stressed.direction is base.direction
 
 
+from quant_engine.reliability.models import ReliabilityState
+from quant_engine.risk.models import RiskState
+
 def test_control_operator_responds_to_available_regime_state():
     base = SignalService().generate(feature(rsi=85, macd_histogram=2))
     regulator = SignalRegulator()
-    normal = StateCoupledControl().apply(regulator.regulate(base, regime=MarketRegime.NORMAL, volatility_ratio=1), volatility_state=.02)
-    stressed = StateCoupledControl().apply(regulator.regulate(base, regime=MarketRegime.HIGH_STRESS, volatility_ratio=2), volatility_state=.08)
+    normal = StateCoupledControl().apply(regulator.regulate(base, regime=MarketRegime.NORMAL, volatility_ratio=1), volatility_state=.02, risk_state=RiskState.LOW_RISK, reliability_state=ReliabilityState.HIGH)
+    stressed = StateCoupledControl().apply(regulator.regulate(base, regime=MarketRegime.HIGH_STRESS, volatility_ratio=2), volatility_state=.08, risk_state=RiskState.CRITICAL_RISK, reliability_state=ReliabilityState.LOW)
     assert normal.control_output != stressed.control_output
     assert normal.decision_state is DecisionState.ADAPT
     assert stressed.decision_state in (DecisionState.HOLD, DecisionState.REVIEW)
