@@ -131,4 +131,5 @@ def get_settings() -> Settings:
     avoiding repeated file/env reads. Tests can override this by
     clearing the cache: get_settings.cache_clear().
     """
-    return Settings()
+    # Pydantic supplies required fields from environment variables at runtime.
+    return Settings()  # type: ignore[call-arg]

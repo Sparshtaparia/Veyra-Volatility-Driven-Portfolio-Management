@@ -21,3 +21,17 @@ class InvalidPortfolioError(Exception):
 class InvalidEvaluationError(Exception):
     def __init__(self, message: str):
         super().__init__(message)
+
+
+class VolatilityEvaluationNotFoundError(Exception):
+    def __init__(self, evaluation_id: str):
+        self.evaluation_id = evaluation_id
+        super().__init__(f"Volatility evaluation not found: {evaluation_id}")
+
+
+class MarketDataUnavailableError(Exception):
+    """Raised when the configured market-data provider cannot serve a request."""
+
+
+class VolatilityPersistenceError(Exception):
+    """Raised when an atomic Phase 3 state write fails."""

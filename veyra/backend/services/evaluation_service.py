@@ -5,7 +5,7 @@ Business logic for Evaluations.
 """
 
 from datetime import datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
@@ -66,7 +66,7 @@ class EvaluationService:
 
     def get_evaluation(self, evaluation_id: str) -> EvaluationResult:
         try:
-            eval_uuid = uuid4(hex=evaluation_id) if isinstance(evaluation_id, str) else evaluation_id
+            eval_uuid = UUID(hex=evaluation_id) if isinstance(evaluation_id, str) else evaluation_id
         except ValueError:
             raise EvaluationNotFoundError(evaluation_id)
 
