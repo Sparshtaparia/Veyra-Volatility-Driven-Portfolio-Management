@@ -86,14 +86,19 @@ class SignalEvaluationService:
         opt_inputs = []
         for control in controls:
             ticker = control.regulated_signal.base_signal.ticker
+            
+            # Re-compute or retrieve reliability score for optimization
+            asset = by_ticker.get(ticker)
+            reliability_out = self.reliability.compute_reliability(ticker, asset.forecast_volatility)
+            
             opt_inputs.append(
                 AssetOptimizationInput(
                     ticker=ticker,
                     current_weight=holdings_by_ticker.get(ticker, 0.0),
                     expected_signal=control.control_output,
                     volatility=control.volatility_state,
-                    composite_risk_score=composite_risk_out.risk_state.composite_risk,
-                    reliability_score=control.reliability_state.effective_reliability
+                    composite_risk_score=composite_risk_out.composite_score,
+                    reliability_score=reliability_out.reliability_score
                 )
             )
             
