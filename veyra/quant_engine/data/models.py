@@ -5,6 +5,7 @@ Domain contracts for market data.
 """
 
 from datetime import date
+
 from pydantic import BaseModel, field_validator, model_validator
 
 
@@ -12,6 +13,7 @@ class MarketBar(BaseModel):
     """
     A single bar of normalized OHLCV data.
     """
+
     ticker: str
     timestamp: date
     open: float
@@ -47,7 +49,7 @@ class MarketBar(BaseModel):
         if self.high < self.low:
             raise ValueError(f"high ({self.high}) cannot be < low ({self.low})")
         if self.high < self.open or self.high < self.close:
-            raise ValueError(f"high must be >= open and close")
+            raise ValueError("high must be >= open and close")
         if self.low > self.open or self.low > self.close:
-            raise ValueError(f"low must be <= open and close")
+            raise ValueError("low must be <= open and close")
         return self

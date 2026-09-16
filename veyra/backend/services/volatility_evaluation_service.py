@@ -219,7 +219,11 @@ class VolatilityEvaluationService:
         returns_by_ticker = {}
         for ticker in sorted(tickers):
             try:
-                bars = self.market_data_provider.get_history(ticker, start_date, end_date)
+                bars = [
+                    bar
+                    for bar in self.market_data_provider.get_history(ticker, start_date, end_date)
+                    if bar.timestamp <= as_of_date
+                ]
             except Exception as exc:
                 raise MarketDataUnavailableError(
                     "The configured market-data provider is unavailable"

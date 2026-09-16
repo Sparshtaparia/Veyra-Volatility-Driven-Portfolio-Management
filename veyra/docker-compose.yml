@@ -28,7 +28,16 @@ services:
       LOG_LEVEL: INFO
       API_PREFIX: /api/v1
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:8080"]}
+      TRUSTED_HOSTS: ${TRUSTED_HOSTS:-["localhost","127.0.0.1"]}
+      VEYRA_API_KEY: ${VEYRA_API_KEY:-}
       FAMA_FRENCH_DATA_PATH: ${FAMA_FRENCH_DATA_PATH:-}
+      STRUCTURED_JSON_LOGS: "true"
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-false}
+      SCHEDULER_TIMEZONE: ${SCHEDULER_TIMEZONE:-UTC}
+      SCHEDULED_EVALUATION_CRON: ${SCHEDULED_EVALUATION_CRON:-0 2 * * 1-5}
+      SCHEDULED_VOLATILITY_CRON: ${SCHEDULED_VOLATILITY_CRON:-0 */6 * * 1-5}
+      MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-yfinance}
+      MARKET_DATA_FALLBACK_PROVIDER: ${MARKET_DATA_FALLBACK_PROVIDER:-yahoo_chart}
     command: ["sh", "-c", "alembic upgrade head && uvicorn backend.main:app --host 0.0.0.0 --port 8000"]
     ports:
       - "8000:8000"
@@ -40,6 +49,16 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 30s
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 30s
     restart: unless-stopped
 
   frontend:

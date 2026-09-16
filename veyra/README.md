@@ -126,6 +126,9 @@ backtesting, seven architecture ablations, and performance attribution.
 
 See [the Phase 5 architecture and deployment guide](docs/phase5.md).
 
+Production scheduling, resilient market data, Supabase pooling, security, and
+observability are documented in [the Phase 6 operations guide](docs/phase6_operations.md).
+
 ## Phase Roadmap
 
 - **Phase 1: Foundation** - API, database, domain models.
@@ -134,5 +137,7 @@ See [the Phase 5 architecture and deployment guide](docs/phase5.md).
 - **Phase 4: Fama-French + alpha** - Rolling betas and multi-factor ranking.
 - **Phase 5: Final core** - Optimization, paper rebalance, feedback, backtesting,
   ablations, attribution, and the quant terminal.
+- **Phase 6: Production operations** - Resilient providers, scheduled pipelines,
+  operational persistence, security, health checks, and deployment hardening.
 
 Live broker execution and trade authorization remain intentionally out of scope.

@@ -19,9 +19,7 @@ class InsufficientCoverageError(RegimeError):
         self.total_asset_count = total_asset_count
         self.minimum_asset_count = minimum_asset_count
         self.minimum_coverage_ratio = minimum_coverage_ratio
-        coverage_ratio = (
-            eligible_asset_count / total_asset_count if total_asset_count else 0.0
-        )
+        coverage_ratio = eligible_asset_count / total_asset_count if total_asset_count else 0.0
         super().__init__(
             "Insufficient market-volatility coverage: "
             f"{eligible_asset_count}/{total_asset_count} eligible assets "

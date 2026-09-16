@@ -43,9 +43,7 @@ class VolatilityRepository:
                 fit_status=estimate.diagnostics.fit_status,
                 convergence_status=estimate.diagnostics.convergence_status,
                 observation_count=estimate.diagnostics.observation_count,
-                used_fallback=(
-                    estimate.diagnostics.fit_status is GARCHFitStatus.FALLBACK
-                ),
+                used_fallback=(estimate.diagnostics.fit_status is GARCHFitStatus.FALLBACK),
             )
             records.append(record)
 

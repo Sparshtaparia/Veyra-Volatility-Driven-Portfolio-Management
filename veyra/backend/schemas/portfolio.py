@@ -5,13 +5,14 @@ FastAPI schemas for Portfolio API.
 """
 
 from datetime import datetime
-from typing import List
 
 from pydantic import BaseModel
+
 
 class CreatePortfolioRequest(BaseModel):
     name: str
     currency: str = "INR"
+
 
 class PortfolioResponse(BaseModel):
     portfolio_id: str
@@ -19,11 +20,13 @@ class PortfolioResponse(BaseModel):
     currency: str
     created_at: datetime
 
+
 class AddHoldingRequest(BaseModel):
     ticker: str
     quantity: float
     average_price: float
     current_price: float
+
 
 class HoldingResponse(BaseModel):
     id: int

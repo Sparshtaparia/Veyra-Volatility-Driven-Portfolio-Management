@@ -18,7 +18,6 @@ from quant_engine.volatility.aggregation import VolatilityAggregator
 from quant_engine.volatility.models import MarketRegime
 from quant_engine.volatility.service import VolatilityService
 
-
 AS_OF_DATE = date(2026, 9, 16)
 
 

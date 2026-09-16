@@ -4,14 +4,13 @@ backend/services/portfolio_service.py
 Business logic for Portfolios.
 """
 
-from datetime import date
-from typing import List
 import uuid
+from datetime import date
 
 from sqlalchemy.orm import Session
 
-from backend.exceptions import PortfolioNotFoundError, InvalidPortfolioError
-from database.models import PortfolioModel, HoldingModel
+from backend.exceptions import InvalidPortfolioError, PortfolioNotFoundError
+from database.models import HoldingModel, PortfolioModel
 from database.repositories.portfolio_repo import PortfolioRepository
 from quant_engine.domain import Portfolio, PortfolioHolding
 
@@ -24,7 +23,14 @@ class PortfolioService:
         portfolio_id = f"port-{uuid.uuid4().hex[:8]}"
         return self.repo.create_portfolio(portfolio_id=portfolio_id, name=name, currency=currency)
 
-    def add_holding(self, portfolio_id: str, ticker: str, quantity: float, average_price: float, current_price: float) -> HoldingModel:
+    def add_holding(
+        self,
+        portfolio_id: str,
+        ticker: str,
+        quantity: float,
+        average_price: float,
+        current_price: float,
+    ) -> HoldingModel:
         portfolio = self.repo.get_portfolio(portfolio_id)
         if not portfolio:
             raise PortfolioNotFoundError(portfolio_id)
@@ -33,7 +39,7 @@ class PortfolioService:
             raise InvalidPortfolioError("Quantity and prices must be non-negative.")
 
         market_value = quantity * current_price
-        
+
         # Add the holding initially with weight 0
         holding = self.repo.add_holding(
             portfolio_id=portfolio_id,
@@ -42,7 +48,7 @@ class PortfolioService:
             average_price=average_price,
             current_price=current_price,
             market_value=market_value,
-            weight=0.0
+            weight=0.0,
         )
 
         self._recalculate_weights(portfolio_id)
@@ -54,7 +60,7 @@ class PortfolioService:
             return
 
         holdings = self.repo.get_holdings(portfolio_id)
-        
+
         # Calculate new total value
         total_value = sum(h.market_value for h in holdings)
         portfolio.total_value = total_value
@@ -76,10 +82,7 @@ class PortfolioService:
         holdings = self.repo.get_holdings(portfolio_id)
         domain_holdings = [
             PortfolioHolding(
-                ticker=h.ticker,
-                weight=h.weight,
-                quantity=h.quantity,
-                market_value=h.market_value
+                ticker=h.ticker, weight=h.weight, quantity=h.quantity, market_value=h.market_value
             )
             for h in holdings
         ]
@@ -88,7 +91,7 @@ class PortfolioService:
             portfolio_id=portfolio.id,
             holdings=domain_holdings,
             total_value=portfolio.total_value,
-            as_of_date=as_of_date
+            as_of_date=as_of_date,
         )
 
     def get_portfolio(self, portfolio_id: str) -> PortfolioModel:

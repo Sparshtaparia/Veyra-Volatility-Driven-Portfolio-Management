@@ -14,8 +14,9 @@ from datetime import date, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    JSON,
     Boolean,
-    Column,
+    CheckConstraint,
     Date,
     DateTime,
     Enum,
@@ -23,9 +24,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    JSON,
     String,
-    CheckConstraint,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -47,6 +46,7 @@ class PortfolioModel(Base):
     """
     Persistent state of a portfolio.
     """
+
     __tablename__ = "portfolios"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -54,7 +54,9 @@ class PortfolioModel(Base):
     total_value: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     currency: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     # Relationships
     holdings: Mapped[list["HoldingModel"]] = relationship(
@@ -77,7 +79,7 @@ class PortfolioModel(Base):
     )
 
     __table_args__ = (
-        CheckConstraint('total_value >= 0', name='check_portfolio_total_value_non_negative'),
+        CheckConstraint("total_value >= 0", name="check_portfolio_total_value_non_negative"),
     )
 
 
@@ -85,10 +87,13 @@ class HoldingModel(Base):
     """
     Persistent state of a single holding within a portfolio.
     """
+
     __tablename__ = "holdings"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    portfolio_id: Mapped[str] = mapped_column(String, ForeignKey("portfolios.id", ondelete="CASCADE"), nullable=False)
+    portfolio_id: Mapped[str] = mapped_column(
+        String, ForeignKey("portfolios.id", ondelete="CASCADE"), nullable=False
+    )
     ticker: Mapped[str] = mapped_column(String, nullable=False)
     quantity: Mapped[float] = mapped_column(Float, nullable=False)
     average_price: Mapped[float] = mapped_column(Float, nullable=False)
@@ -96,17 +101,19 @@ class HoldingModel(Base):
     market_value: Mapped[float] = mapped_column(Float, nullable=False)
     weight: Mapped[float] = mapped_column(Float, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     # Relationships
     portfolio: Mapped["PortfolioModel"] = relationship("PortfolioModel", back_populates="holdings")
 
     __table_args__ = (
-        CheckConstraint('quantity >= 0', name='check_holding_quantity_non_negative'),
-        CheckConstraint('average_price >= 0', name='check_holding_average_price_non_negative'),
-        CheckConstraint('current_price >= 0', name='check_holding_current_price_non_negative'),
-        CheckConstraint('market_value >= 0', name='check_holding_market_value_non_negative'),
-        CheckConstraint('weight >= 0 AND weight <= 1', name='check_holding_weight_bounds'),
+        CheckConstraint("quantity >= 0", name="check_holding_quantity_non_negative"),
+        CheckConstraint("average_price >= 0", name="check_holding_average_price_non_negative"),
+        CheckConstraint("current_price >= 0", name="check_holding_current_price_non_negative"),
+        CheckConstraint("market_value >= 0", name="check_holding_market_value_non_negative"),
+        CheckConstraint("weight >= 0 AND weight <= 1", name="check_holding_weight_bounds"),
     )
 
 
@@ -115,10 +122,13 @@ class EvaluationModel(Base):
     Persistent record of a portfolio evaluation cycle.
     evaluation_id is the primary correlation key across the system.
     """
+
     __tablename__ = "evaluations"
 
     evaluation_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
-    portfolio_id: Mapped[str] = mapped_column(String, ForeignKey("portfolios.id", ondelete="CASCADE"), nullable=False)
+    portfolio_id: Mapped[str] = mapped_column(
+        String, ForeignKey("portfolios.id", ondelete="CASCADE"), nullable=False
+    )
     evaluation_date: Mapped[date] = mapped_column(Date, nullable=False)
     trigger: Mapped[EvaluationTrigger] = mapped_column(Enum(EvaluationTrigger), nullable=False)
     decision: Mapped[EvaluationDecision] = mapped_column(Enum(EvaluationDecision), nullable=False)
@@ -129,7 +139,9 @@ class EvaluationModel(Base):
     error_message: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Relationships
-    portfolio: Mapped["PortfolioModel"] = relationship("PortfolioModel", back_populates="evaluations")
+    portfolio: Mapped["PortfolioModel"] = relationship(
+        "PortfolioModel", back_populates="evaluations"
+    )
     volatility_states: Mapped[list["VolatilityStateModel"]] = relationship(
         "VolatilityStateModel", back_populates="evaluation", cascade="all, delete-orphan"
     )
@@ -192,9 +204,7 @@ class VolatilityStateModel(Base):
     )
     observation_count: Mapped[int] = mapped_column(Integer, nullable=False)
     used_fallback: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     evaluation: Mapped["EvaluationModel"] = relationship(
         "EvaluationModel", back_populates="volatility_states"
@@ -258,9 +268,7 @@ class RegimeStateModel(Base):
         Enum(MarketRegime, native_enum=False, length=32), nullable=False
     )
     coverage_ratio: Mapped[float] = mapped_column(Float, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     evaluation: Mapped["EvaluationModel"] = relationship(
         "EvaluationModel", back_populates="regime_states"
@@ -376,7 +384,9 @@ class RiskStateModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     evaluation_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("evaluations.evaluation_id", ondelete="CASCADE"), unique=True
+        PGUUID(as_uuid=True),
+        ForeignKey("evaluations.evaluation_id", ondelete="CASCADE"),
+        unique=True,
     )
     portfolio_id: Mapped[str] = mapped_column(
         String, ForeignKey("portfolios.id", ondelete="CASCADE")
@@ -455,11 +465,11 @@ class PortfolioTargetModel(Base):
 class RebalanceEventModel(Base):
     __tablename__ = "rebalance_events"
 
-    event_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    event_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     evaluation_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("evaluations.evaluation_id", ondelete="CASCADE"), unique=True
+        PGUUID(as_uuid=True),
+        ForeignKey("evaluations.evaluation_id", ondelete="CASCADE"),
+        unique=True,
     )
     portfolio_id: Mapped[str] = mapped_column(
         String, ForeignKey("portfolios.id", ondelete="CASCADE")
@@ -549,15 +559,15 @@ class FeedbackUpdateModel(Base):
     observed_outcome: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     updated_state: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    __table_args__ = (Index("ix_feedback_updates_portfolio_date", "portfolio_id", "observation_date"),)
+    __table_args__ = (
+        Index("ix_feedback_updates_portfolio_date", "portfolio_id", "observation_date"),
+    )
 
 
 class BacktestModel(Base):
     __tablename__ = "backtests"
 
-    backtest_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    backtest_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     portfolio_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("portfolios.id", ondelete="SET NULL")
     )
@@ -618,4 +628,57 @@ class BacktestMetricModel(Base):
         CheckConstraint("volatility >= 0", name="ck_backtest_metric_volatility"),
         CheckConstraint("win_rate >= 0 AND win_rate <= 1", name="ck_backtest_metric_win_rate"),
         CheckConstraint("turnover >= 0", name="ck_backtest_metric_turnover"),
+    )
+
+
+class ScheduledRunModel(Base):
+    """Operational ledger for idempotent scheduled pipeline claims."""
+
+    __tablename__ = "scheduled_runs"
+
+    run_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    run_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    portfolio_id: Mapped[str] = mapped_column(
+        String, ForeignKey("portfolios.id", ondelete="CASCADE"), nullable=False
+    )
+    evaluation_date: Mapped[date] = mapped_column(Date, nullable=False)
+    evaluation_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("evaluations.evaluation_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    provider: Mapped[str] = mapped_column(String(128), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    duration_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stage_timings: Mapped[dict[str, float]] = mapped_column(JSON, nullable=False)
+    error_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "run_type",
+            "portfolio_id",
+            "evaluation_date",
+            name="uq_scheduled_run_type_portfolio_date",
+        ),
+        CheckConstraint(
+            "run_type IN ('FULL_EVALUATION', 'VOLATILITY_REFRESH')",
+            name="ck_scheduled_run_type",
+        ),
+        CheckConstraint(
+            "status IN ('RUNNING', 'COMPLETED', 'FAILED')",
+            name="ck_scheduled_run_status",
+        ),
+        CheckConstraint(
+            "duration_ms IS NULL OR duration_ms >= 0",
+            name="ck_scheduled_run_duration",
+        ),
+        Index("ix_scheduled_runs_status", "status"),
+        Index("ix_scheduled_runs_portfolio_date", "portfolio_id", "evaluation_date"),
     )

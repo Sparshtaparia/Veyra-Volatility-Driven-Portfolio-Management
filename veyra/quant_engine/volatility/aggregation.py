@@ -38,19 +38,15 @@ class VolatilityAggregator:
             raise ValueError("estimate count cannot exceed total_asset_count")
 
         model_fit_count = sum(
-            estimate.diagnostics.fit_status is GARCHFitStatus.SUCCESS
-            for estimate in estimates
+            estimate.diagnostics.fit_status is GARCHFitStatus.SUCCESS for estimate in estimates
         )
         fallback_count = sum(
-            estimate.diagnostics.fit_status is GARCHFitStatus.FALLBACK
-            for estimate in estimates
+            estimate.diagnostics.fit_status is GARCHFitStatus.FALLBACK for estimate in estimates
         )
         failed_asset_count = total_asset_count - model_fit_count - fallback_count
 
         eligible = [
-            estimate
-            for estimate in estimates
-            if self._is_eligible(estimate, as_of_date=as_of_date)
+            estimate for estimate in estimates if self._is_eligible(estimate, as_of_date=as_of_date)
         ]
         eligible_asset_count = len(eligible)
         coverage_ratio = eligible_asset_count / total_asset_count
@@ -63,9 +59,7 @@ class VolatilityAggregator:
         conditional_volatilities = np.asarray(
             [estimate.conditional_volatility for estimate in eligible]
         )
-        realized_volatilities = np.asarray(
-            [estimate.realized_volatility for estimate in eligible]
-        )
+        realized_volatilities = np.asarray([estimate.realized_volatility for estimate in eligible])
         volatility_ratios = np.asarray([estimate.volatility_ratio for estimate in eligible])
 
         median_conditional = float(np.median(conditional_volatilities))

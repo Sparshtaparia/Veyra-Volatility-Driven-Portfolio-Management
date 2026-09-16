@@ -5,8 +5,10 @@ Tests for market data models.
 """
 
 from datetime import date
+
 import pytest
 from pydantic import ValidationError
+
 from quant_engine.data.models import MarketBar
 
 
@@ -18,7 +20,7 @@ def test_valid_market_bar():
         high=155.0,
         low=149.0,
         close=154.0,
-        volume=1000000
+        volume=1000000,
     )
     assert bar.ticker == "AAPL"
 
@@ -32,7 +34,7 @@ def test_negative_price():
             high=155.0,
             low=149.0,
             close=154.0,
-            volume=1000000
+            volume=1000000,
         )
 
 
@@ -45,7 +47,7 @@ def test_negative_volume():
             high=155.0,
             low=149.0,
             close=154.0,
-            volume=-10
+            volume=-10,
         )
 
 
@@ -58,7 +60,7 @@ def test_high_less_than_low():
             high=148.0,  # High < Low
             low=149.0,
             close=154.0,
-            volume=1000000
+            volume=1000000,
         )
 
 
@@ -71,5 +73,5 @@ def test_high_less_than_open():
             high=155.0,  # High < Open
             low=149.0,
             close=154.0,
-            volume=1000000
+            volume=1000000,
         )

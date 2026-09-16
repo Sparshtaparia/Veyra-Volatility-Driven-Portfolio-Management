@@ -42,6 +42,7 @@ def test_phase3_migration_upgrades_and_downgrades_existing_schema(
         "backtests",
         "backtest_returns",
         "backtest_metrics",
+        "scheduled_runs",
     }.issubset(inspector.get_table_names())
     assert command.current(config) is None
 
@@ -53,5 +54,6 @@ def test_phase3_migration_upgrades_and_downgrades_existing_schema(
     assert "controlled_signals" not in remaining
     assert "portfolio_targets" not in remaining
     assert "backtests" not in remaining
+    assert "scheduled_runs" not in remaining
     assert {"portfolios", "holdings", "evaluations"}.issubset(remaining)
     get_settings.cache_clear()

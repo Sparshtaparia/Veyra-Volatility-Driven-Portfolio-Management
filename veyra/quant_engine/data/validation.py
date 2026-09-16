@@ -4,15 +4,15 @@ quant_engine/data/validation.py
 Data validation and normalization pipeline.
 """
 
-from typing import List
 import pandas as pd
 
 from quant_engine.data.models import MarketBar
 
-def normalize_market_data(bars: List[MarketBar]) -> pd.DataFrame:
+
+def normalize_market_data(bars: list[MarketBar]) -> pd.DataFrame:
     """
     Convert MarketBars to a normalized, chronologically sorted DataFrame.
-    
+
     Validation Policy:
     - Sorts chronologically by timestamp
     - Drops duplicates by timestamp (keeps last)
@@ -22,19 +22,19 @@ def normalize_market_data(bars: List[MarketBar]) -> pd.DataFrame:
     """
     if not bars:
         return pd.DataFrame()
-        
+
     df = pd.DataFrame([b.model_dump() for b in bars])
-    
+
     # Ensure types
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-    
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+
     # Sort chronologically
-    df = df.sort_values(by='timestamp')
-    
+    df = df.sort_values(by="timestamp")
+
     # Handle duplicates
-    df = df.drop_duplicates(subset=['timestamp'], keep='last')
-    
+    df = df.drop_duplicates(subset=["timestamp"], keep="last")
+
     # Set index
-    df = df.set_index('timestamp')
-    
+    df = df.set_index("timestamp")
+
     return df

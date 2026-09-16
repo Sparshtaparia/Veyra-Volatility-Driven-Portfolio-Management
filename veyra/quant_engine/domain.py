@@ -32,7 +32,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator, model_validator
 
-
 # ==============================================================================
 # Enumerations
 # ==============================================================================
@@ -185,7 +184,7 @@ class Portfolio(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def validate_weights_sum(self) -> "Portfolio":
+    def validate_weights_sum(self) -> Portfolio:
         """
         Enforce that weights approximately sum to 1 for non-empty portfolios.
 

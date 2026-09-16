@@ -7,11 +7,10 @@ Must NOT contain any quantitative logic or business decisions.
 """
 
 from datetime import date
-from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy.orm import Session
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from database.models import EvaluationModel
 from quant_engine.domain import EvaluationDecision, EvaluationStatus, EvaluationTrigger
@@ -28,7 +27,7 @@ class EvaluationRepository:
         evaluation_date: date,
         trigger: EvaluationTrigger,
         decision: EvaluationDecision,
-        status: EvaluationStatus
+        status: EvaluationStatus,
     ) -> EvaluationModel:
         db_eval = EvaluationModel(
             evaluation_id=evaluation_id,
@@ -36,24 +35,32 @@ class EvaluationRepository:
             evaluation_date=evaluation_date,
             trigger=trigger,
             decision=decision,
-            status=status
+            status=status,
         )
         self.db.add(db_eval)
         self.db.commit()
         self.db.refresh(db_eval)
         return db_eval
 
-    def get_evaluation(self, evaluation_id: UUID) -> Optional[EvaluationModel]:
+    def get_evaluation(self, evaluation_id: UUID) -> EvaluationModel | None:
         return self.db.execute(
             select(EvaluationModel).where(EvaluationModel.evaluation_id == evaluation_id)
         ).scalar_one_or_none()
 
-    def list_evaluations_for_portfolio(self, portfolio_id: str) -> List[EvaluationModel]:
-        return list(self.db.execute(
-            select(EvaluationModel).where(EvaluationModel.portfolio_id == portfolio_id)
-        ).scalars().all())
+    def list_evaluations_for_portfolio(self, portfolio_id: str) -> list[EvaluationModel]:
+        return list(
+            self.db.execute(
+                select(EvaluationModel)
+                .where(EvaluationModel.portfolio_id == portfolio_id)
+                .order_by(EvaluationModel.evaluation_date.desc(), EvaluationModel.created_at.desc())
+            )
+            .scalars()
+            .all()
+        )
 
-    def update_evaluation_status(self, evaluation_id: UUID, status: EvaluationStatus) -> Optional[EvaluationModel]:
+    def update_evaluation_status(
+        self, evaluation_id: UUID, status: EvaluationStatus
+    ) -> EvaluationModel | None:
         evaluation = self.get_evaluation(evaluation_id)
         if evaluation:
             evaluation.status = status
