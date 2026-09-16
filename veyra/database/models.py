@@ -23,6 +23,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     CheckConstraint,
     UniqueConstraint,
@@ -67,6 +68,12 @@ class PortfolioModel(Base):
     )
     regime_states: Mapped[list["RegimeStateModel"]] = relationship(
         "RegimeStateModel", back_populates="portfolio", cascade="all, delete-orphan"
+    )
+    factor_states: Mapped[list["FactorStateModel"]] = relationship(
+        "FactorStateModel", back_populates="portfolio", cascade="all, delete-orphan"
+    )
+    risk_states: Mapped[list["RiskStateModel"]] = relationship(
+        "RiskStateModel", back_populates="portfolio", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
@@ -128,6 +135,21 @@ class EvaluationModel(Base):
     )
     regime_states: Mapped[list["RegimeStateModel"]] = relationship(
         "RegimeStateModel", back_populates="evaluation", cascade="all, delete-orphan"
+    )
+    factor_states: Mapped[list["FactorStateModel"]] = relationship(
+        "FactorStateModel", back_populates="evaluation", cascade="all, delete-orphan"
+    )
+    fama_french_exposures: Mapped[list["FamaFrenchExposureModel"]] = relationship(
+        "FamaFrenchExposureModel", back_populates="evaluation", cascade="all, delete-orphan"
+    )
+    reliability_states: Mapped[list["ReliabilityStateModel"]] = relationship(
+        "ReliabilityStateModel", back_populates="evaluation", cascade="all, delete-orphan"
+    )
+    risk_states: Mapped[list["RiskStateModel"]] = relationship(
+        "RiskStateModel", back_populates="evaluation", cascade="all, delete-orphan"
+    )
+    controlled_signals: Mapped[list["ControlledSignalModel"]] = relationship(
+        "ControlledSignalModel", back_populates="evaluation", cascade="all, delete-orphan"
     )
 
 
@@ -271,4 +293,126 @@ class RegimeStateModel(Base):
         ),
         Index("ix_regime_states_evaluation_id", "evaluation_id"),
         Index("ix_regime_states_portfolio_date", "portfolio_id", "as_of_date"),
+    )
+
+
+class FactorStateModel(Base):
+    __tablename__ = "factor_states"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    evaluation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("evaluations.evaluation_id", ondelete="CASCADE")
+    )
+    portfolio_id: Mapped[str] = mapped_column(
+        String, ForeignKey("portfolios.id", ondelete="CASCADE")
+    )
+    ticker: Mapped[str] = mapped_column(String, nullable=False)
+    as_of_date: Mapped[date] = mapped_column(Date, nullable=False)
+    normalization_method: Mapped[str] = mapped_column(String(32), nullable=False)
+    raw_factors: Mapped[dict[str, float]] = mapped_column(JSON, nullable=False)
+    normalized_factors: Mapped[dict[str, float]] = mapped_column(JSON, nullable=False)
+    factor_contributions: Mapped[dict[str, float]] = mapped_column(JSON, nullable=False)
+    base_signal: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    evaluation: Mapped["EvaluationModel"] = relationship(back_populates="factor_states")
+    portfolio: Mapped["PortfolioModel"] = relationship(back_populates="factor_states")
+    __table_args__ = (
+        UniqueConstraint("evaluation_id", "ticker", name="uq_factor_state_evaluation_ticker"),
+        Index("ix_factor_states_evaluation_id", "evaluation_id"),
+        Index("ix_factor_states_portfolio_date", "portfolio_id", "as_of_date"),
+    )
+
+
+class FamaFrenchExposureModel(Base):
+    __tablename__ = "fama_french_exposures"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    evaluation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("evaluations.evaluation_id", ondelete="CASCADE")
+    )
+    ticker: Mapped[str] = mapped_column(String, nullable=False)
+    as_of_date: Mapped[date] = mapped_column(Date, nullable=False)
+    alpha: Mapped[float] = mapped_column(Float, nullable=False)
+    market_beta: Mapped[float] = mapped_column(Float, nullable=False)
+    smb_beta: Mapped[float] = mapped_column(Float, nullable=False)
+    hml_beta: Mapped[float] = mapped_column(Float, nullable=False)
+    rmw_beta: Mapped[float] = mapped_column(Float, nullable=False)
+    cma_beta: Mapped[float] = mapped_column(Float, nullable=False)
+    r_squared: Mapped[float] = mapped_column(Float, nullable=False)
+    observation_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    evaluation: Mapped["EvaluationModel"] = relationship(back_populates="fama_french_exposures")
+    __table_args__ = (
+        UniqueConstraint("evaluation_id", "ticker", name="uq_ff_exposure_evaluation_ticker"),
+        Index("ix_ff_exposures_evaluation_id", "evaluation_id"),
+    )
+
+
+class ReliabilityStateModel(Base):
+    __tablename__ = "reliability_states"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    evaluation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("evaluations.evaluation_id", ondelete="CASCADE")
+    )
+    ticker: Mapped[str] = mapped_column(String, nullable=False)
+    as_of_date: Mapped[date] = mapped_column(Date, nullable=False)
+    base_reliability: Mapped[float] = mapped_column(Float, nullable=False)
+    volatility_adjustment: Mapped[float] = mapped_column(Float, nullable=False)
+    regime_adjustment: Mapped[float] = mapped_column(Float, nullable=False)
+    recent_performance_adjustment: Mapped[float] = mapped_column(Float, nullable=False)
+    reliability_adjustment: Mapped[float] = mapped_column(Float, nullable=False)
+    effective_reliability: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    evaluation: Mapped["EvaluationModel"] = relationship(back_populates="reliability_states")
+    __table_args__ = (
+        UniqueConstraint("evaluation_id", "ticker", name="uq_reliability_evaluation_ticker"),
+        Index("ix_reliability_states_evaluation_id", "evaluation_id"),
+    )
+
+
+class RiskStateModel(Base):
+    __tablename__ = "risk_states"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    evaluation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("evaluations.evaluation_id", ondelete="CASCADE"), unique=True
+    )
+    portfolio_id: Mapped[str] = mapped_column(
+        String, ForeignKey("portfolios.id", ondelete="CASCADE")
+    )
+    as_of_date: Mapped[date] = mapped_column(Date, nullable=False)
+    volatility_risk: Mapped[float] = mapped_column(Float, nullable=False)
+    drawdown_risk: Mapped[float] = mapped_column(Float, nullable=False)
+    correlation_risk: Mapped[float] = mapped_column(Float, nullable=False)
+    concentration_risk: Mapped[float] = mapped_column(Float, nullable=False)
+    liquidity_risk: Mapped[float] = mapped_column(Float, nullable=False)
+    composite_risk: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    evaluation: Mapped["EvaluationModel"] = relationship(back_populates="risk_states")
+    portfolio: Mapped["PortfolioModel"] = relationship(back_populates="risk_states")
+    __table_args__ = (Index("ix_risk_states_portfolio_date", "portfolio_id", "as_of_date"),)
+
+
+class ControlledSignalModel(Base):
+    __tablename__ = "controlled_signals"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    evaluation_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("evaluations.evaluation_id", ondelete="CASCADE")
+    )
+    ticker: Mapped[str] = mapped_column(String, nullable=False)
+    as_of_date: Mapped[date] = mapped_column(Date, nullable=False)
+    base_signal: Mapped[float] = mapped_column(Float, nullable=False)
+    volatility_adjustment: Mapped[float] = mapped_column(Float, nullable=False)
+    reliability_adjustment: Mapped[float] = mapped_column(Float, nullable=False)
+    risk_adjustment: Mapped[float] = mapped_column(Float, nullable=False)
+    controlled_signal: Mapped[float] = mapped_column(Float, nullable=False)
+    risk_contribution: Mapped[float] = mapped_column(Float, nullable=False)
+    explainability: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    evaluation: Mapped["EvaluationModel"] = relationship(back_populates="controlled_signals")
+    __table_args__ = (
+        UniqueConstraint("evaluation_id", "ticker", name="uq_controlled_signal_evaluation_ticker"),
+        Index("ix_controlled_signals_evaluation_id", "evaluation_id"),
     )

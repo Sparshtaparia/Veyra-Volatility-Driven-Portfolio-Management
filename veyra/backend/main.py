@@ -9,7 +9,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from backend.api import market_data, portfolios, volatility
+from backend.api import market_data, portfolios, signals, volatility
 from backend.exceptions import EvaluationNotFoundError, PortfolioNotFoundError, InvalidPortfolioError, InvalidEvaluationError
 from backend.middleware.logging import LoggingMiddleware
 from config.settings import get_settings
@@ -35,6 +35,7 @@ app.add_middleware(LoggingMiddleware)
 app.include_router(portfolios.router, prefix=settings.api_prefix)
 app.include_router(market_data.router, prefix=settings.api_prefix)
 app.include_router(volatility.router, prefix=settings.api_prefix)
+app.include_router(signals.router, prefix=settings.api_prefix)
 
 # Healthcheck
 @app.get("/health", tags=["health"])

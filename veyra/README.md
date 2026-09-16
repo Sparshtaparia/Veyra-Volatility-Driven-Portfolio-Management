@@ -89,6 +89,20 @@ Phase 3 state is stored in PostgreSQL through SQLAlchemy. The volatility and
 regime rows share the existing evaluation ID, and reusing a completed
 evaluation ID returns the persisted result.
 
+### Evaluate Controlled Signals
+
+Configure `FAMA_FRENCH_DATA_PATH` with a decimal-return five-factor CSV, then:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/portfolios/port-1234abcd/signals/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{"as_of_date": "2026-09-16"}'
+
+curl http://localhost:8000/api/v1/evaluations/EVALUATION_UUID/signals
+curl http://localhost:8000/api/v1/evaluations/EVALUATION_UUID/risk
+curl http://localhost:8000/api/v1/evaluations/EVALUATION_UUID/explainability
+```
+
 ## Phase Roadmap
 
 - **Phase 1: Foundation** - API, database, domain models.

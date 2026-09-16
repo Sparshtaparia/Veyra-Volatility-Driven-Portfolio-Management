@@ -26,7 +26,15 @@ def test_phase3_migration_upgrades_and_downgrades_existing_schema(
     command.upgrade(config, "head")
 
     inspector = inspect(engine)
-    assert {"volatility_states", "regime_states"}.issubset(inspector.get_table_names())
+    assert {
+        "volatility_states",
+        "regime_states",
+        "factor_states",
+        "fama_french_exposures",
+        "reliability_states",
+        "risk_states",
+        "controlled_signals",
+    }.issubset(inspector.get_table_names())
     assert command.current(config) is None
 
     command.downgrade(config, "base")
@@ -34,5 +42,6 @@ def test_phase3_migration_upgrades_and_downgrades_existing_schema(
     remaining = set(inspect(engine).get_table_names())
     assert "volatility_states" not in remaining
     assert "regime_states" not in remaining
+    assert "controlled_signals" not in remaining
     assert {"portfolios", "holdings", "evaluations"}.issubset(remaining)
     get_settings.cache_clear()

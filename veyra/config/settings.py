@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     """URL prefix for all API routes."""
 
+    fama_french_data_path: str | None = None
+    """Optional path to a decimal-return five-factor CSV used by Phase 4."""
+
     # ------------------------------------------------------------------
     # Business defaults
     # ------------------------------------------------------------------

@@ -35,3 +35,15 @@ class MarketDataUnavailableError(Exception):
 
 class VolatilityPersistenceError(Exception):
     """Raised when an atomic Phase 3 state write fails."""
+
+
+class FactorDataUnavailableError(Exception):
+    """Raised when the configured Fama-French data source is unavailable."""
+
+
+class SignalEvaluationNotFoundError(Exception):
+    """Raised when an evaluation has no persisted Phase 4 result."""
+
+
+class SignalPersistenceError(Exception):
+    """Raised when the atomic Phase 4 state write fails."""
