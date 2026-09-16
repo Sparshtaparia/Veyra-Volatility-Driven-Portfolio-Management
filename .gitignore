@@ -67,3 +67,4 @@ logs/
 
 # Alembic
 # Keep migrations under version control; ignore only the cache
+.DS_Store
