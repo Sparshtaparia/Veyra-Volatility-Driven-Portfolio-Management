@@ -29,9 +29,12 @@ class AssetDecisionResponse(BaseModel):
     reason_codes: list[str]
 
 
+from quant_engine.optimization.models import AllocationResult
+
 class SignalDecisionEvaluationResponse(BaseModel):
     evaluation_id: UUID
     portfolio_id: str
     as_of_date: date
     controls: list[AssetDecisionResponse]
     composite_risk: dict
+    allocation_result: AllocationResult

@@ -87,6 +87,7 @@ def evaluate_signals(
             portfolio_id=result.portfolio_id,
             as_of_date=result.as_of_date,
             composite_risk=result.composite_risk,
+            allocation_result=result.allocation_result,
             controls=[AssetDecisionResponse(
                 ticker=item.regulated_signal.base_signal.ticker,
                 base_signal=item.regulated_signal.base_signal.composite_signal,
