@@ -81,3 +81,29 @@ snapshot. A portfolio therefore needs historical regime states (for example,
 from a controlled backfill) before its first adaptive evaluation can complete.
 The explicit fixed-threshold research mode remains available in the quant
 layer but is not selected implicitly by the API.
+
+## Phase 4 decision extension
+
+```text
+Phase 2 FeatureSnapshot
+    ↓
+Interpretable RSI + ATR-normalized MACD base signal
+    ↓
+Volatility-conditioned attenuation (Phase 3 regime and asset ratio)
+    ↓
+State-coupled control: U = Phi(S, volatility, risk_state, reliability_state)
+    ↓
+HOLD / REVIEW / ADAPT decision state
+```
+
+`SignalService` produces bounded, deterministic, interpretable base signals.
+`SignalRegulator` preserves orientation and multiplies signal amplitude by a
+strictly positive factor no greater than one. NORMAL and LOW_VOL retain the
+base signal; ELEVATED and HIGH_STRESS apply increasing ratio-based decay.
+`StateCoupledControl` applies the remaining regime control multiplier and
+returns concise reason codes. Risk and reliability are explicitly neutral typed
+states in Phase 4; their substantive engines, plus optimization, rebalancing,
+feedback, and backtesting, are later phases.
+
+`POST /api/v1/portfolios/{portfolio_id}/signals/evaluate` composes the existing
+Phase 3 persisted evaluation with feature generation and the Phase 4 controls.

@@ -22,6 +22,8 @@ from backend.schemas.volatility import (
     VolatilityEvaluationResponse,
 )
 from backend.services.volatility_evaluation_service import VolatilityEvaluationService
+from backend.services.signal_evaluation_service import SignalEvaluationService
+from backend.schemas.signal_control import SignalDecisionEvaluationRequest, SignalDecisionEvaluationResponse, AssetDecisionResponse
 from quant_engine.data.provider import MarketDataProvider
 from quant_engine.regimes.exceptions import (
     InsufficientCoverageError,
@@ -36,6 +38,10 @@ logger = logging.getLogger("veyra.api")
 
 def _service(db: Session, provider: MarketDataProvider) -> VolatilityEvaluationService:
     return VolatilityEvaluationService(db, provider)
+
+
+def _signal_service(db: Session, provider: MarketDataProvider) -> SignalEvaluationService:
+    return SignalEvaluationService(db, provider)
 
 
 def _map_error(exc: Exception) -> HTTPException:
@@ -59,6 +65,45 @@ def _map_error(exc: Exception) -> HTTPException:
         return HTTPException(status_code=500, detail="Volatility evaluation could not be saved")
     logger.exception("Unexpected volatility evaluation failure")
     return HTTPException(status_code=500, detail="Volatility evaluation failed")
+
+
+@router.post(
+    "/portfolios/{portfolio_id}/signals/evaluate",
+    response_model=SignalDecisionEvaluationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def evaluate_signals(
+    portfolio_id: str,
+    request: SignalDecisionEvaluationRequest,
+    db: Session = Depends(get_db),
+    provider: MarketDataProvider = Depends(get_market_data_provider),
+):
+    try:
+        result = _signal_service(db, provider).evaluate(portfolio_id, request.as_of_date, evaluation_id=request.evaluation_id)
+        return SignalDecisionEvaluationResponse(
+            evaluation_id=result.evaluation_id,
+            portfolio_id=result.portfolio_id,
+            as_of_date=result.as_of_date,
+            composite_risk=result.composite_risk,
+            controls=[AssetDecisionResponse(
+                ticker=item.regulated_signal.base_signal.ticker,
+                base_signal=item.regulated_signal.base_signal.composite_signal,
+                regulated_signal=item.regulated_signal.regulated_signal,
+                attenuation_factor=item.regulated_signal.attenuation_factor,
+                control_output=item.control_output,
+                direction=item.direction,
+                decision_state=item.decision_state,
+                regime=item.regime,
+                volatility_state=item.volatility_state,
+                risk_state=item.risk_state,
+                reliability_state=item.reliability_state,
+                reason_codes=item.reason_codes,
+            ) for item in result.controls],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise _map_error(exc) from exc
 
 
 @router.post(
