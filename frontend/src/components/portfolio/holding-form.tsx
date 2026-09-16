@@ -3,11 +3,14 @@ import { Plus } from "lucide-react"
 import { useAddHolding } from "@/hooks/use-portfolio"
 import { Field, Notice, TextInput } from "@/components/ui/primitives"
 
+import { useToast } from "@/components/common/toast"
+
 export function AddHoldingForm({ portfolioId, onAdded }: { portfolioId: string; onAdded?: () => void }) {
   const [ticker, setTicker] = useState("")
   const [quantity, setQuantity] = useState("")
   const [price, setPrice] = useState("")
   const addHolding = useAddHolding(portfolioId)
+  const { toast } = useToast()
 
   return (
     <form
@@ -17,11 +20,15 @@ export function AddHoldingForm({ portfolioId, onAdded }: { portfolioId: string; 
           { ticker: ticker.toUpperCase(), quantity: Number(quantity), average_price: Number(price), current_price: Number(price) },
           {
             onSuccess: () => {
+              toast({ title: `Added ${ticker.toUpperCase()}`, type: "success" })
               setTicker("")
               setQuantity("")
               setPrice("")
               onAdded?.()
             },
+            onError: (err) => {
+              toast({ title: "Failed to add holding", description: err.message, type: "error" })
+            }
           }
         )
       }}

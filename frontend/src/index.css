@@ -46,6 +46,15 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+
+    /* Animation durations */
+    --duration-fast: 150ms;
+    --duration-base: 250ms;
+    --duration-slow: 400ms;
+
+    /* Animation easings */
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
@@ -120,12 +129,77 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
     margin: 0;
   }
   html {
     @apply font-sans;
-    }
+    scroll-behavior: smooth;
+  }
+}
+
+/* ── Page-entry animations ─────────────────────────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-right {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-up   { animation: fade-up   var(--duration-slow) var(--ease-out-expo) both; }
+.animate-fade-in   { animation: fade-in   var(--duration-base) ease both; }
+.animate-scale-in  { animation: scale-in  var(--duration-slow) var(--ease-spring) both; }
+.animate-slide-right { animation: slide-right var(--duration-slow) var(--ease-out-expo) both; }
+
+/* stagger helpers */
+.delay-75  { animation-delay:  75ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-225 { animation-delay: 225ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-375 { animation-delay: 375ms; }
+.delay-450 { animation-delay: 450ms; }
+
+/* ── Gradient mesh background helper ───────────────────────────────── */
+.mesh-bg {
+  background:
+    radial-gradient(ellipse 70% 50% at 80% -10%, oklch(0.88 0.15 145 / 0.45), transparent),
+    radial-gradient(ellipse 55% 45% at -5% 30%,  oklch(0.85 0.12 220 / 0.30), transparent),
+    oklch(0.985 0.004 145);
+}
+
+/* ── Scrollbar hide utility ────────────────────────────────────────── */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ── Smooth interactive transitions ───────────────────────────────── */
+.card-hover {
+  transition: box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+.card-hover:hover {
+  box-shadow: 0 4px 24px oklch(0 0 0 / 0.07);
+  transform: translateY(-1px);
+}
+
+/* ── Skeleton shimmer ──────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 0.5rem;
 }

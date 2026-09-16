@@ -16,7 +16,7 @@ const suggested = [
 ]
 
 export function OnboardingPage() {
-  const { user, loading } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const createPortfolio = useCreatePortfolio()
   const portfolioId = createPortfolio.data?.portfolio_id ?? null
@@ -29,7 +29,6 @@ export function OnboardingPage() {
   const [error, setError] = useState<string | undefined>()
   const [submitting, setSubmitting] = useState(false)
 
-  if (loading) return <main className="grid min-h-screen place-items-center text-sm text-slate-600">Loading…</main>
   if (!user) return <Navigate to="/sign-up" replace />
 
   async function createAndContinue() {
