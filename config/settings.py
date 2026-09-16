@@ -14,6 +14,7 @@ Usage
 """
 
 from functools import lru_cache
+from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
@@ -87,6 +88,8 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("VEYRA_API_KEY", "API_KEY"),
     )
     structured_json_logs: bool = True
+    auth_bypass_enabled: bool = False
+    dev_auth_user_id: UUID = UUID("00000000-0000-0000-0000-000000000001")
 
     market_data_provider: str = "yfinance"
     market_data_secondary_provider: str | None = "alpha_vantage"
@@ -201,6 +204,8 @@ class Settings(BaseSettings):
         if self.market_data_max_backoff_seconds < self.market_data_backoff_seconds:
             raise ValueError("market-data maximum backoff must be at least the base backoff")
         if self.app_env == "production":
+            if self.auth_bypass_enabled:
+                raise ValueError("AUTH_BYPASS_ENABLED cannot be enabled in production")
             if not self.database_url.startswith(("postgresql://", "postgresql+psycopg2://")):
                 raise ValueError("production requires a PostgreSQL DATABASE_URL")
             supabase_configured = any(

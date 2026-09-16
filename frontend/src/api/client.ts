@@ -8,14 +8,18 @@ export class ApiError extends Error { constructor(public status: number, message
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response: Response
   try {
-    const { data } = await supabase.auth.getSession()
-    const sessionHeaders = data.session
-      ? { Authorization: `Bearer ${data.session.access_token}` }
-      : {}
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession()
+    if (error) console.warn("Unable to read Supabase session")
+    if (import.meta.env.DEV) {
+      console.debug("[auth] Supabase session present:", Boolean(session))
+    }
     const headers = new Headers(options.headers)
     if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json")
-    if (!headers.has("Authorization") && sessionHeaders.Authorization) {
-      headers.set("Authorization", sessionHeaders.Authorization)
+    if (session?.access_token && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${session.access_token}`)
     }
     response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers })
   } catch { throw new ApiError(0, "Veyra API is not reachable. Start the backend and try again.") }

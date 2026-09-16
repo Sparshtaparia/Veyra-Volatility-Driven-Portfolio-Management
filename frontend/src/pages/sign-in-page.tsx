@@ -78,15 +78,23 @@ export function SignInPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPw, setShowPw] = useState(false)
+  const [pending, setPending] = useState(false)
   const [error, setError] = useState("")
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
-    const user = signIn(email, password)
-    if (!user) { setError("Invalid email or password. Please try again."); return }
-    navigate(user.role === "ADMIN" ? "/admin" : "/app")
+    setError("")
+    setPending(true)
+    try {
+      const user = await signIn(email, password)
+      navigate(user.role === "ADMIN" ? "/admin" : "/app")
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Unable to sign in.")
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
@@ -169,9 +177,10 @@ export function SignInPage() {
 
               <button
                 type="submit"
+                disabled={pending}
                 className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
-                Sign In <ArrowRight className="size-4" />
+                {pending ? "Signing in…" : <><span>Sign In</span><ArrowRight className="size-4" /></>}
               </button>
             </form>
 

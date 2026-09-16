@@ -34,6 +34,7 @@ from config.settings import get_settings
 logger = logging.getLogger(__name__)
 
 Role = Literal["INVESTOR", "ADMIN"]
+AuthSource = Literal["supabase", "development_bypass"]
 _bearer = HTTPBearer(auto_error=False)
 
 
@@ -44,6 +45,7 @@ class CurrentUser:
     user_id: str
     email: str
     role: Role
+    auth_source: AuthSource = "supabase"
 
 
 @lru_cache(maxsize=1)
@@ -67,7 +69,6 @@ def _decode_token(token: str) -> dict:
         # Supabase not configured: fall through so callers can decide
         raise RuntimeError("SUPABASE_JWKS_URL is not configured")
     signing_key = client.get_signing_key_from_jwt(token)
-    settings = get_settings()
     audience = "authenticated"
     return jwt.decode(
         token,
@@ -86,6 +87,15 @@ def require_auth(
 
     Raises HTTP 401 if the token is missing, expired, or invalid.
     """
+    settings = get_settings()
+    if settings.app_env == "development" and settings.auth_bypass_enabled:
+        return CurrentUser(
+            user_id=str(settings.dev_auth_user_id),
+            email="dev@veyra.local",
+            role="INVESTOR",
+            auth_source="development_bypass",
+        )
+
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

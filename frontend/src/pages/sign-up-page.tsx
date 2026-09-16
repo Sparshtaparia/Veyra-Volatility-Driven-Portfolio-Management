@@ -31,7 +31,7 @@ export function SignUpPage() {
     if (form.password.length < 8)  { setError("Password must be at least 8 characters."); return }
     setPending(true)
     try {
-      createInvestor(form.email)
+      await createInvestor(form.name, form.email, form.password)
       navigate("/onboarding")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create your account.")
