@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchRoot } from "@/api/client"
+import { apiFetch } from "@/api/client"
 
 export type ApiHealth = {
   status: string
@@ -44,7 +44,7 @@ export type SystemStatusResponse = {
 }
 
 export const adminApi = {
-  health: () => apiFetchRoot<ApiHealth>("/health"),
-  readiness: () => apiFetchRoot<DatabaseReadiness>("/health/ready"),
+  health: () => apiFetch<ApiHealth>("/health"),
+  readiness: () => apiFetch<DatabaseReadiness>("/health/ready"),
   systemStatus: () => apiFetch<SystemStatusResponse>("/system/status"),
 }

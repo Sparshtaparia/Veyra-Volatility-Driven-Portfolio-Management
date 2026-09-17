@@ -65,6 +65,10 @@ def evaluate_signals(
     factor_provider: FactorDataProvider = Depends(get_factor_data_provider),
 ):
     try:
+        from backend.services.portfolio_service import PortfolioService
+        portfolio_service = PortfolioService(db)
+        portfolio_service.sync_prices(portfolio_id, request.as_of_date, market_provider)
+        
         result = _service(db, market_provider, factor_provider).evaluate(
             portfolio_id, request.as_of_date, evaluation_id=request.evaluation_id
         )

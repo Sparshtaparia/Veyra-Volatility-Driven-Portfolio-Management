@@ -8,6 +8,7 @@ import { currency, formatDate, percent, signedPercent } from "@/lib/format"
 import { DecisionCard } from "@/components/decision/decision-card"
 import { AllocationLegend } from "@/components/portfolio/portfolio-chart"
 import { EmptyState, Loading, Notice, Panel, PanelHeader, Badge } from "@/components/ui/primitives"
+import { EvaluationPipeline } from "@/components/evaluation/evaluation-pipeline"
 
 function greeting() {
   const hour = new Date().getHours()
@@ -86,15 +87,17 @@ export function AppDashboardPage() {
           {evaluate.error && <Notice text={evaluate.error.message} />}
 
           <section className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_.7fr]">
-            {evaluation ? (
-              <DecisionCard result={evaluation} evaluating={evaluate.isPending} onEvaluate={runEvaluation} className="h-full" />
+            {evaluate.isPending ? (
+              <EvaluationPipeline running={true} />
+            ) : evaluation ? (
+              <DecisionCard result={evaluation} evaluating={false} onEvaluate={runEvaluation} className="h-full" />
             ) : (
               <Panel className="grid h-full place-items-center p-8">
                 <div className="max-w-sm text-center">
                   <p className="text-lg font-semibold text-slate-900">No evaluation yet</p>
                   <p className="mt-2 text-sm leading-6 text-slate-500">Run your first evaluation to see Veyra's decision, market conditions, and whether your portfolio needs to change.</p>
-                  <button onClick={runEvaluation} disabled={evaluate.isPending} className="mt-5 inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-60">
-                    <RefreshCw className={evaluate.isPending ? "size-4 animate-spin" : "size-4"} /> Evaluate Portfolio
+                  <button onClick={runEvaluation} className="mt-5 inline-flex h-11 items-center gap-2 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700">
+                    <RefreshCw className="size-4" /> Evaluate Portfolio
                   </button>
                 </div>
               </Panel>

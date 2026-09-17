@@ -19,9 +19,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <aside className="hidden bg-slate-950 px-4 py-6 text-white lg:flex lg:flex-col lg:justify-between">
         <div>
           <div className="flex items-center gap-2.5 px-3">
-            <span className="grid size-8 place-items-center rounded-lg bg-emerald-400 text-sm font-bold text-slate-950">
-              V
-            </span>
+            <img src="/logo.png" alt="Veyra Logo" className="size-8" />
             <div>
               <span className="text-xl font-semibold tracking-tight">Veyra</span>
               <span className="ml-2 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
@@ -73,9 +71,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 py-3 shadow-2xs lg:hidden">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="grid size-8 place-items-center rounded-lg bg-slate-950 text-sm font-bold text-white">
-                V
-              </span>
+              <img src="/logo.png" alt="Veyra Logo" className="size-8" />
               <div>
                 <span className="font-semibold text-slate-950">Veyra Admin</span>
                 <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">

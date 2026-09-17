@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { Activity, BellRing, BriefcaseBusiness, ChartLine, Gauge, House, LogOut, Menu, Settings, X } from "lucide-react"
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
+import { Navigate, Link, NavLink, Outlet, useLocation } from "react-router-dom"
 import { useAuth } from "@/auth/auth-context"
+import { getSavedPortfolioId } from "@/hooks/use-portfolio"
 import { cn } from "cn"
 
 const navItems = [
@@ -26,7 +27,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <Link to="/app" className="flex items-center gap-2 px-2 py-5" onClick={onNavigate}>
-        <span className="grid size-9 place-items-center rounded-lg bg-emerald-500 text-sm font-bold text-white">V</span>
+        <img src="/logo.png" alt="Veyra Logo" className="size-9" />
         <span className="text-xl font-semibold tracking-tight text-slate-950">Veyra</span>
       </Link>
       <nav className="flex-1 space-y-1 px-2" aria-label="App navigation">
@@ -67,6 +68,12 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const portfolioId = getSavedPortfolioId()
+
+  if (!portfolioId) {
+    return <Navigate to="/onboarding" replace />
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-slate-200 bg-white lg:block">
@@ -86,7 +93,7 @@ export function AppLayout() {
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur lg:hidden">
           <Link to="/app" className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-lg bg-emerald-500 text-sm font-bold text-white">V</span>
+            <img src="/logo.png" alt="Veyra Logo" className="size-8" />
             <span className="text-lg font-semibold tracking-tight">Veyra</span>
           </Link>
           <button onClick={() => setMenuOpen(true)} className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-700" aria-label="Open menu">

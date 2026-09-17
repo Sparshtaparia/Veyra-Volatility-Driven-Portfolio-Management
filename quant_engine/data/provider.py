@@ -30,6 +30,40 @@ class MarketDataProvider(ABC):
         pass
 
 
+_KNOWN_NSE_TICKERS = {
+    "TCS", "INFY", "HDFCBANK", "RELIANCE", "WIPRO", "ICICIBANK",
+    "SBIN", "ITC", "AXISBANK", "LT", "KOTAKBANK", "HCLTECH", "ASIANPAINT",
+    "MARUTI", "BHARTIARTL", "BAJFINANCE", "TITAN", "SUNPHARMA", "NESTLEIND",
+    "ULTRACEMCO", "POWERGRID", "NTPC", "ONGC", "TATASTEEL", "JSWSTEEL",
+    "BAJAJFINSV", "TECHM", "ADANIENT", "ADANIPORTS", "HINDALCO", "GRASIM",
+    "TATAMOTORS", "HDFCLIFE", "SBILIFE", "DRREDDY", "CIPLA", "DIVISLAB",
+    "EICHERMOT", "HEROMOTOCO", "APOLLOHOSP", "TATACONSUM", "BRITANNIA",
+}
+
+_TICKER_ALIASES = {
+    "HDFC": "HDFCBANK",
+    "REL": "RELIANCE"
+}
+
+def _resolve_ticker(ticker: str) -> str:
+    """Append .NS for NSE-listed Indian tickers that have no exchange suffix."""
+    if "." in ticker or "^" in ticker:
+        return ticker  # Already has a suffix or is an index
+        
+    normalized = ticker.upper()
+    if normalized in _TICKER_ALIASES:
+        normalized = _TICKER_ALIASES[normalized]
+        
+    if normalized in _KNOWN_NSE_TICKERS:
+        return f"{normalized}.NS"
+    
+    # Fallback for other non-suffixed Indian stocks the user might try
+    if normalized.isalpha():
+        return f"{normalized}.NS"
+        
+    return ticker
+
+
 class YFinanceProvider(MarketDataProvider):
     """
     Concrete development provider using Yahoo Finance.
@@ -41,9 +75,10 @@ class YFinanceProvider(MarketDataProvider):
         self.timeout_seconds = timeout_seconds
 
     def get_history(self, ticker: str, start_date: date, end_date: date) -> list[MarketBar]:
+        resolved = _resolve_ticker(ticker)
         try:
             df = yf.download(
-                tickers=ticker,
+                tickers=resolved,
                 start=start_date,
                 end=end_date,
                 progress=False,
@@ -54,14 +89,14 @@ class YFinanceProvider(MarketDataProvider):
             if df.empty:
                 return []
             if isinstance(df.columns, pd.MultiIndex):
-                df = df.xs(ticker, axis=1, level=1)
+                df = df.xs(resolved, axis=1, level=1)
             df.columns = df.columns.str.lower()
             bars = []
             for index, row in df.iterrows():
                 try:
                     bars.append(
                         MarketBar(
-                            ticker=ticker,
+                            ticker=ticker,  # Keep original ticker name in result
                             timestamp=index.date(),
                             open=float(row["open"]),
                             high=float(row["high"]),
@@ -75,7 +110,7 @@ class YFinanceProvider(MarketDataProvider):
             return bars
         except Exception as exc:
             raise RuntimeError(
-                f"YFinanceProvider failed to fetch data for {ticker}: {exc}"
+                f"YFinanceProvider failed to fetch data for {ticker} (resolved: {resolved}): {exc}"
             ) from exc
 
 
@@ -88,11 +123,12 @@ class YahooChartProvider(MarketDataProvider):
         self.timeout_seconds = timeout_seconds
 
     def get_history(self, ticker: str, start_date: date, end_date: date) -> list[MarketBar]:
+        resolved = _resolve_ticker(ticker)
         period1 = int(datetime.combine(start_date, time.min, tzinfo=UTC).timestamp())
         period2 = int(datetime.combine(end_date, time.min, tzinfo=UTC).timestamp())
         url = (
             "https://query1.finance.yahoo.com/v8/finance/chart/"
-            f"{quote(ticker)}?period1={period1}&period2={period2}"
+            f"{quote(resolved)}?period1={period1}&period2={period2}"
             "&interval=1d&events=history"
         )
         request = Request(url, headers={"User-Agent": "Veyra/0.2 market-data"})

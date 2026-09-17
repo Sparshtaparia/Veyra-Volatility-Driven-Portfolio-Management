@@ -14,7 +14,7 @@ function AuthLeftPanel() {
 
       {/* Logo */}
       <div className="relative flex items-center gap-2.5">
-        <span className="grid size-8 place-items-center rounded-md bg-emerald-600 text-sm font-bold text-white">V</span>
+        <img src="/logo.png" alt="Veyra Logo" className="size-8" />
         <div>
           <p className="font-bold">Veyra</p>
           <p className="text-[10px] text-emerald-300/70">Smarter Portfolios for a Volatile World.</p>
@@ -117,7 +117,7 @@ export function SignInPage() {
           <div className="w-full max-w-md">
             {/* Logo */}
             <div className="flex items-center justify-center gap-2 mb-6">
-              <span className="grid size-8 place-items-center rounded-md bg-[#14532d] text-sm font-bold text-white">V</span>
+              <img src="/logo.png" alt="Veyra Logo" className="size-8" />
               <span className="font-bold text-slate-900">Veyra</span>
             </div>
 
@@ -136,6 +136,7 @@ export function SignInPage() {
                     id="email" type="email" required value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@domain.com"
+                    autoComplete="off"
                     className="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-4 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition"
                   />
                 </div>
@@ -152,6 +153,7 @@ export function SignInPage() {
                     id="password" type={showPw ? "text" : "password"} required
                     value={password} onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
+                    autoComplete="new-password"
                     className="h-11 w-full rounded-xl border border-slate-200 pl-10 pr-10 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition"
                   />
                   <button

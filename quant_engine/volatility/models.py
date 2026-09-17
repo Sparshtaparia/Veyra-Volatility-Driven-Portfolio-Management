@@ -43,7 +43,7 @@ class MarketRegime(str, Enum):
 class VolatilityModel(BaseModel):
     """Shared validation policy for Phase 3 value objects."""
 
-    model_config = ConfigDict(allow_inf_nan=False, extra="forbid")
+    model_config = ConfigDict(allow_inf_nan=False, extra="forbid", protected_namespaces=())
 
 
 class GARCHParameters(VolatilityModel):

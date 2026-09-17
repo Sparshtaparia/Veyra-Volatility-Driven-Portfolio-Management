@@ -49,7 +49,26 @@ class SignalEvaluationService:
         self.allocator = TargetAllocator(rebalance_threshold=0.05)
 
     def evaluate(self, portfolio_id: str, as_of_date: date, *, evaluation_id: UUID | None = None) -> SignalDecisionEvaluationDTO:
-        volatility = self.volatility_service.evaluate(portfolio_id, as_of_date, evaluation_id=evaluation_id)
+        try:
+            volatility = self.volatility_service.evaluate(portfolio_id, as_of_date, evaluation_id=evaluation_id)
+        except Exception as e:
+            from quant_engine.regimes.exceptions import InsufficientCoverageError
+            if isinstance(e, InsufficientCoverageError):
+                import uuid
+                return SignalDecisionEvaluationDTO(
+                    evaluation_id=evaluation_id or uuid.uuid4(),
+                    portfolio_id=portfolio_id,
+                    as_of_date=as_of_date,
+                    controls=[],
+                    composite_risk={
+                        "composite_score": 0.0,
+                        "risk_state": "LOW RISK",
+                        "components": {"volatility_exposure": 0.0, "concentration": 0.0}
+                    },
+                    allocation_result=AllocationResult(allocations=[], total_turnover=0.0, decision="HOLD - Insufficient Assets (<3)")
+                )
+            raise e
+
         by_ticker = {asset.ticker: asset for asset in volatility.asset_volatility}
         holdings = self.portfolio_service.repo.get_holdings(portfolio_id)
         holdings_by_ticker = {h.ticker: h.weight for h in holdings}
@@ -102,7 +121,9 @@ class SignalEvaluationService:
                 )
             )
             
-        constraints = OptimizationConstraints(min_weight=0.0, max_weight=0.4, turnover_limit=1.0)
+        portfolio = self.portfolio_service.repo.get_portfolio(portfolio_id)
+        max_weight = portfolio.max_weight_constraint if portfolio and portfolio.max_weight_constraint else 0.40
+        constraints = OptimizationConstraints(min_weight=0.0, max_weight=max_weight, turnover_limit=1.0)
         target_outputs = self.optimizer.optimize(opt_inputs, constraints)
         allocation_result = self.allocator.allocate(opt_inputs, target_outputs)
             

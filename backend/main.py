@@ -75,7 +75,10 @@ app.add_middleware(
 # NOTE: Route-level JWT authentication is enforced via `require_auth` dependency
 # in each protected API router. Health endpoints remain public.
 
+from backend.api import auth, market_data, portfolio_control, portfolios, signals, system, volatility, rebalance, analytics
+
 # Routers
+app.include_router(auth.router, prefix=settings.api_prefix)
 app.include_router(portfolios.router, prefix=settings.api_prefix)
 app.include_router(market_data.router, prefix=settings.api_prefix)
 app.include_router(volatility.router, prefix=settings.api_prefix)
@@ -83,6 +86,7 @@ app.include_router(signals.router, prefix=settings.api_prefix)
 app.include_router(portfolio_control.router, prefix=settings.api_prefix)
 app.include_router(system.router, prefix=settings.api_prefix)
 app.include_router(rebalance.router, prefix=settings.api_prefix)
+app.include_router(analytics.router, prefix=settings.api_prefix)
 
 
 # Healthcheck

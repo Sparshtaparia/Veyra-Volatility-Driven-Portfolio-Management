@@ -45,7 +45,7 @@ export function SignUpPage() {
       {/* Left dark panel */}
       <aside className="hidden w-[45%] shrink-0 flex-col justify-between bg-[#0f1f0f] p-10 lg:flex">
         <div className="flex items-center gap-2.5">
-          <span className="grid size-8 place-items-center rounded-md bg-emerald-700 text-sm font-bold text-white">V</span>
+          <img src="/logo.png" alt="Veyra Logo" className="size-8" />
           <span className="font-bold text-white">Veyra</span>
         </div>
 
@@ -79,7 +79,7 @@ export function SignUpPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <span className="grid size-8 place-items-center rounded-md bg-emerald-700 text-sm font-bold text-white">V</span>
+            <img src="/logo.png" alt="Veyra Logo" className="size-8" />
             <span className="font-bold text-slate-900">Veyra</span>
           </div>
 
@@ -91,7 +91,7 @@ export function SignUpPage() {
               <label htmlFor="su-name" className="block text-xs font-semibold text-slate-700 mb-1.5">Full Name</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <input id="su-name" type="text" value={form.name} onChange={set("name")} placeholder="Sparsh Taparia"
+                <input id="su-name" type="text" value={form.name} onChange={set("name")} placeholder="Enter your full name"
                   className="h-11 w-full rounded-xl border border-slate-200 pl-9 pr-3 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition" />
               </div>
             </div>
@@ -99,7 +99,7 @@ export function SignUpPage() {
               <label htmlFor="su-email" className="block text-xs font-semibold text-slate-700 mb-1.5">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <input id="su-email" type="email" value={form.email} onChange={set("email")} placeholder="you@example.com" required
+                <input id="su-email" type="email" value={form.email} onChange={set("email")} placeholder="you@example.com" required autoComplete="off"
                   className="h-11 w-full rounded-xl border border-slate-200 pl-9 pr-3 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition" />
               </div>
             </div>
@@ -107,7 +107,7 @@ export function SignUpPage() {
               <label htmlFor="su-password" className="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <input id="su-password" type={showPwd ? "text" : "password"} value={form.password} onChange={set("password")} placeholder="At least 8 characters" required
+                <input id="su-password" type={showPwd ? "text" : "password"} value={form.password} onChange={set("password")} placeholder="At least 8 characters" required autoComplete="new-password"
                   className="h-11 w-full rounded-xl border border-slate-200 pl-9 pr-10 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition" />
                 <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition">
                   {showPwd ? <EyeOff className="size-4" /> : <Eye className="size-4" />}

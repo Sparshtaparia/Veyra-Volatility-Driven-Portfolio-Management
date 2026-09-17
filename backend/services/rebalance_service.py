@@ -51,14 +51,23 @@ class RebalanceService:
             raise ValueError("Cannot execute rebalance: Decision is HOLD")
 
         # 3. Get current prices for execution
+        from datetime import timedelta
+        
+        def _get_price(ticker: str, date: date) -> float:
+            bars = self.provider.get_history(ticker, date - timedelta(days=10), date + timedelta(days=1))
+            valid = [b for b in bars if b.timestamp <= date]
+            if not valid:
+                raise ValueError(f"No price history found for {ticker} around {date}")
+            return valid[-1].close
+
         prices = {}
         for h in holdings:
-            prices[h.ticker] = self.provider.get_latest_price(h.ticker, as_of_date)
+            prices[h.ticker] = _get_price(h.ticker, as_of_date)
 
         # Add prices for any new targets that are not in current holdings
         for alloc in allocation.allocations:
             if alloc.ticker not in prices:
-                prices[alloc.ticker] = self.provider.get_latest_price(alloc.ticker, as_of_date)
+                prices[alloc.ticker] = _get_price(alloc.ticker, as_of_date)
 
         # 4. Generate Rebalance Plan (Phase 7a)
         plan = self.planner.generate_plan(
@@ -99,8 +108,45 @@ class RebalanceService:
                 net_cash_change=order.net_cash_change,
             )
             self.db.add(trade)
+            
+            # Apply CRUD to actual holdings
+            from database.models import HoldingModel
+            holding = self.db.query(HoldingModel).filter_by(portfolio_id=portfolio_id, ticker=order.ticker).first()
+            
+            if order.side == "BUY":
+                if holding:
+                    new_quantity = holding.quantity + order.quantity
+                    holding.average_price = ((holding.quantity * holding.average_price) + (order.quantity * order.execution_price)) / new_quantity
+                    holding.quantity = new_quantity
+                    holding.current_price = order.execution_price
+                    holding.market_value = new_quantity * order.execution_price
+                else:
+                    holding = HoldingModel(
+                        portfolio_id=portfolio_id,
+                        ticker=order.ticker,
+                        quantity=order.quantity,
+                        average_price=order.execution_price,
+                        current_price=order.execution_price,
+                        market_value=order.quantity * order.execution_price,
+                        weight=0.0 # Will be recalculated
+                    )
+                    self.db.add(holding)
+            elif order.side == "SELL":
+                if holding:
+                    new_quantity = holding.quantity - order.quantity
+                    if new_quantity <= 0:
+                        self.db.delete(holding)
+                    else:
+                        holding.quantity = new_quantity
+                        holding.current_price = order.execution_price
+                        holding.market_value = new_quantity * order.execution_price
 
-        # Simulated portfolio snapshot — separate from live holdings
+        self.db.flush()
+        
+        # Recalculate weights and total portfolio value
+        self.portfolio_service._recalculate_weights(portfolio_id)
+
+        # Simulated portfolio snapshot — now reflects actual updated holdings
         new_total_value = sum(h["market_value"] for h in result.simulated_holdings)
         snapshot = PortfolioSnapshotModel(
             portfolio_id=portfolio_id,

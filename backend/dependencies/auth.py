@@ -48,33 +48,13 @@ class CurrentUser:
     auth_source: AuthSource = "supabase"
 
 
-@lru_cache(maxsize=1)
-def _jwks_client() -> jwt.PyJWKClient | None:
-    """
-    Build the PyJWKClient once per process.
-
-    Returns None when Supabase is not configured so that the dependency
-    can degrade gracefully in local-dev / test environments.
-    """
-    settings = get_settings()
-    if not settings.supabase_jwks_url:
-        return None
-    return jwt.PyJWKClient(settings.supabase_jwks_url, cache_jwk_set=True, lifespan=600)
-
-
 def _decode_token(token: str) -> dict:
-    """Decode and verify a Supabase JWT, returning the claims dict."""
-    client = _jwks_client()
-    if client is None:
-        # Supabase not configured: fall through so callers can decide
-        raise RuntimeError("SUPABASE_JWKS_URL is not configured")
-    signing_key = client.get_signing_key_from_jwt(token)
-    audience = "authenticated"
+    """Decode and verify our custom JWT, returning the claims dict."""
+    settings = get_settings()
     return jwt.decode(
         token,
-        signing_key.key,
-        algorithms=["RS256"],
-        audience=audience,
+        settings.jwt_secret,
+        algorithms=[settings.jwt_algorithm],
         options={"require": ["exp", "sub"]},
     )
 
@@ -104,20 +84,13 @@ def require_auth(
         )
     try:
         claims = _decode_token(credentials.credentials)
-    except RuntimeError:
-        # JWKS not configured — this is a developer/test environment.
-        # Raise a 503 so the misconfiguration is visible, not silently bypassed.
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication service is not configured (missing SUPABASE_JWKS_URL).",
-        )
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired. Please sign in again.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except (jwt.InvalidTokenError, jwt.PyJWKClientError, Exception) as exc:
+    except (jwt.InvalidTokenError, Exception) as exc:
         logger.warning("JWT verification failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

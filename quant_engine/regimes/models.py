@@ -11,7 +11,7 @@ from quant_engine.volatility.models import MarketRegime
 
 
 class RegimeModel(BaseModel):
-    model_config = ConfigDict(allow_inf_nan=False, extra="forbid")
+    model_config = ConfigDict(allow_inf_nan=False, extra="forbid", protected_namespaces=())
 
 
 class CoverageRequirements(RegimeModel):

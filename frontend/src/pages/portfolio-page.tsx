@@ -1,19 +1,39 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Plus, Settings } from "lucide-react"
-import { Link } from "react-router-dom"
-import { useHoldings, usePortfolio } from "@/hooks/use-portfolio"
+import { Link, useNavigate } from "react-router-dom"
+import { useHoldings, usePortfolio, useUpdatePortfolio, useDeletePortfolio } from "@/hooks/use-portfolio"
 import { getSavedPortfolioId } from "@/hooks/use-portfolio"
 import { currency } from "@/lib/format"
 import { PortfolioDonut, AllocationLegend } from "@/components/portfolio/portfolio-chart"
 import { HoldingsTable } from "@/components/portfolio/holdings-table"
 import { AddHoldingForm } from "@/components/portfolio/holding-form"
-import { Loading, Notice, OutlineButton, Panel, EmptyState } from "@/components/ui/primitives"
+import { Loading, Notice, OutlineButton, Panel, EmptyState, Field, TextInput } from "@/components/ui/primitives"
 
 export function PortfolioPage() {
+  const navigate = useNavigate()
   const portfolioId = getSavedPortfolioId()
   const portfolio = usePortfolio(portfolioId)
   const holdings = useHoldings(portfolioId)
+  const updatePortfolio = useUpdatePortfolio(portfolioId)
+  const deletePortfolio = useDeletePortfolio(portfolioId)
+  
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState("")
+  const [editCurrency, setEditCurrency] = useState("")
+
+  useEffect(() => {
+    if (portfolio.data) {
+      setEditName(portfolio.data.name)
+      setEditCurrency(portfolio.data.currency)
+    }
+  }, [portfolio.data])
+
+  useEffect(() => {
+    if (deletePortfolio.isSuccess) {
+      navigate("/onboarding")
+    }
+  }, [deletePortfolio.isSuccess, navigate])
 
   if (!portfolioId) return <EmptyState title="No portfolio yet" text="Create a portfolio through onboarding before managing it." action={<Link to="/onboarding" className="inline-flex h-11 items-center rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white">Set up a portfolio</Link>} />
 
@@ -27,9 +47,36 @@ export function PortfolioPage() {
         </div>
         <div className="flex gap-3">
           <OutlineButton onClick={() => setAdding((v) => !v)}><Plus className="size-4" /> Add Holding</OutlineButton>
-          <Link to="/app/settings" className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50"><Settings className="size-4" /> Edit Portfolio</Link>
+          <OutlineButton onClick={() => setEditing(true)}><Settings className="size-4" /> Edit Portfolio</OutlineButton>
         </div>
       </header>
+
+      {editing && portfolio.data && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">Edit Portfolio</h2>
+              <button onClick={() => setEditing(false)} className="text-slate-400 hover:text-slate-600">×</button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); updatePortfolio.mutate({ name: editName, currency: editCurrency }, { onSuccess: () => setEditing(false) }) }} className="mt-6 space-y-4">
+              <Field label="Portfolio Name">
+                <TextInput value={editName} onChange={e => setEditName(e.target.value)} required />
+              </Field>
+              <Field label="Base Currency">
+                <TextInput value={editCurrency} onChange={e => setEditCurrency(e.target.value)} required />
+              </Field>
+              <div className="mt-8 flex items-center gap-3">
+                <button type="submit" disabled={updatePortfolio.isPending} className="flex-1 rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">
+                  {updatePortfolio.isPending ? "Saving..." : "Save Changes"}
+                </button>
+                <button type="button" onClick={() => deletePortfolio.mutate()} disabled={deletePortfolio.isPending} className="rounded-lg bg-red-100 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-200 disabled:opacity-60">
+                  {deletePortfolio.isPending ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {portfolio.error && <Notice text={portfolio.error.message} />}
 
@@ -68,7 +115,7 @@ export function PortfolioPage() {
               {holdings.isLoading ? (
                 <Loading label="Loading holdings…" />
               ) : holdings.data?.length ? (
-                <div className="px-6 py-4"><HoldingsTable holdings={holdings.data} /></div>
+                <div className="px-6 py-4"><HoldingsTable holdings={holdings.data} portfolioId={portfolioId!} /></div>
               ) : (
                 <EmptyState title="No holdings yet" text="Add your first holding to see it in the portfolio." action={<button onClick={() => setAdding(true)} className="inline-flex h-11 items-center gap-2 rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white"><Plus className="size-4" /> Add Holding</button>} />
               )}

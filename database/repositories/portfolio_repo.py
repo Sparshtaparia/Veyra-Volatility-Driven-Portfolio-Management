@@ -48,6 +48,12 @@ class PortfolioRepository:
         self.db.refresh(portfolio)
         return portfolio
 
+    def delete_portfolio(self, portfolio_id: str) -> None:
+        portfolio = self.get_portfolio(portfolio_id)
+        if portfolio:
+            self.db.delete(portfolio)
+            self.db.commit()
+
     def add_holding(
         self,
         portfolio_id: str,

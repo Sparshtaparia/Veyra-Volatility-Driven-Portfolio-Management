@@ -42,6 +42,21 @@ class Base(DeclarativeBase):
     pass
 
 
+class UserModel(Base):
+    """
+    Persistent state of a user.
+    """
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    role: Mapped[str] = mapped_column(String(32), default="INVESTOR", nullable=False)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 class PortfolioModel(Base):
     """
     Persistent state of a portfolio.
@@ -63,6 +78,7 @@ class PortfolioModel(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
+    max_weight_constraint: Mapped[float] = mapped_column(Float, default=0.40, nullable=False)
 
     # Relationships
     holdings: Mapped[list["HoldingModel"]] = relationship(

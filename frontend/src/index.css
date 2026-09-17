@@ -203,3 +203,9 @@
   animation: shimmer 1.6s ease-in-out infinite;
   border-radius: 0.5rem;
 }
+
+/* ── Evaluation pipeline step progress bar ─────────────────────────── */
+@keyframes progressBar {
+  0%   { width: 0%; }
+  100% { width: 100%; }
+}

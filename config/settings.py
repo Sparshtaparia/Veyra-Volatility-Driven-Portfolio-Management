@@ -91,6 +91,15 @@ class Settings(BaseSettings):
     auth_bypass_enabled: bool = False
     dev_auth_user_id: UUID = UUID("00000000-0000-0000-0000-000000000001")
 
+    # Custom JWT Authentication
+    jwt_secret: str = Field(default="dev_secret_do_not_use_in_prod")
+    jwt_algorithm: str = Field(default="HS256")
+    jwt_expire_minutes: int = Field(default=60 * 24 * 7)  # 1 week
+
+    # Brevo Email
+    brevo_api_key: str | None = Field(default=None)
+    brevo_sender_email: str = Field(default="noreply@veyra.com")
+
     market_data_provider: str = "yfinance"
     market_data_secondary_provider: str | None = "alpha_vantage"
     market_data_fallback_provider: str | None = "yahoo_chart"
@@ -175,7 +184,7 @@ class Settings(BaseSettings):
     @classmethod
     def validate_database_url(cls, value: str) -> str:
         value = value.strip()
-        allowed = ("postgresql://", "postgresql+psycopg2://", "sqlite://")
+        allowed = ("postgresql://", "postgresql+psycopg://", "postgresql+psycopg2://", "sqlite://")
         if not value.startswith(allowed):
             raise ValueError("database_url must use PostgreSQL or SQLite SQLAlchemy syntax")
         return value
@@ -206,7 +215,7 @@ class Settings(BaseSettings):
         if self.app_env == "production":
             if self.auth_bypass_enabled:
                 raise ValueError("AUTH_BYPASS_ENABLED cannot be enabled in production")
-            if not self.database_url.startswith(("postgresql://", "postgresql+psycopg2://")):
+            if not self.database_url.startswith(("postgresql://", "postgresql+psycopg://", "postgresql+psycopg2://")):
                 raise ValueError("production requires a PostgreSQL DATABASE_URL")
             supabase_configured = any(
                 (self.supabase_url, self.supabase_jwks_url, self.supabase_service_role_key)
@@ -252,3 +261,5 @@ def get_settings() -> Settings:
     """
     # Pydantic supplies required fields from environment variables at runtime.
     return Settings()  # type: ignore[call-arg]
+
+

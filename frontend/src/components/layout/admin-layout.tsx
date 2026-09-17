@@ -19,7 +19,7 @@ export function AdminLayout() {
   const sidebar = (
     <div className="flex h-full flex-col">
       <Link to="/admin" className="flex items-center gap-2 px-2 py-5">
-        <span className="grid size-9 place-items-center rounded-lg bg-slate-950 text-sm font-bold text-white">V</span>
+        <img src="/logo.png" alt="Veyra Logo" className="size-9" />
         <span>
           <span className="block text-xl font-semibold tracking-tight text-slate-950">Veyra</span>
           <span className="block text-xs font-medium uppercase tracking-wider text-slate-400">Admin</span>

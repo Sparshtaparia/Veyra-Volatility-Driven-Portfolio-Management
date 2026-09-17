@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { SetupPipeline } from "@/components/portfolio/setup-pipeline"
 import { ArrowLeft, ArrowRight, Check, Plus, Trash2 } from "lucide-react"
 import { Link, Navigate, useNavigate } from "react-router-dom"
 import { useAuth } from "@/auth/auth-context"
@@ -63,7 +64,7 @@ export function OnboardingPage() {
       <div className="w-full max-w-xl">
         <div className="mb-8 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <span className="grid size-9 place-items-center rounded-lg bg-emerald-500 text-sm font-bold text-white">V</span>
+            <img src="/logo.png" alt="Veyra Logo" className="size-9" />
             <span className="text-xl font-semibold tracking-tight">Veyra</span>
           </Link>
           <p className="text-sm text-slate-500">Step {step + 1} of 4</p>
@@ -163,11 +164,17 @@ export function OnboardingPage() {
           )}
 
           {step === 3 && (
-            <div className="py-6 text-center">
+            <div className="py-6">
+              <SetupPipeline onComplete={() => setStep(4)} />
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="py-6 text-center animate-in fade-in zoom-in duration-500">
               <span className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><Check className="size-8" /></span>
               <h1 className="mt-5 text-2xl font-semibold tracking-tight">Your portfolio is ready</h1>
               <p className="mx-auto mt-3 max-w-sm leading-6 text-slate-600">Veyra will evaluate <strong>{name}</strong> ({rows.length} holdings, base currency {currency}, {frequency.toLowerCase()} frequency) and tell you when it needs to change.</p>
-              <button onClick={() => navigate("/app")} className="mt-7 inline-flex h-11 items-center gap-2 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white">Go to Dashboard <ArrowRight className="size-4" /></button>
+              <button onClick={() => navigate("/app")} className="mt-7 inline-flex h-11 items-center gap-2 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white hover:bg-slate-800 transition">Go to Dashboard <ArrowRight className="size-4" /></button>
             </div>
           )}
         </Panel>
@@ -175,6 +182,18 @@ export function OnboardingPage() {
     </main>
   )
 }
+
+const INDIAN_STOCKS = [
+  "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "HINDUNILVR", 
+  "SBIN", "BHARTIARTL", "ITC", "KOTAKBANK", "LT", "AXISBANK", 
+  "BAJFINANCE", "ASIANPAINT", "MARUTI", "SUNPHARMA", "TITAN", 
+  "ULTRACEMCO", "WIPRO", "NESTLEIND", "POWERGRID", "NTPC", "M&M", 
+  "TATASTEEL", "TECHM", "HCLTECH", "ONGC", "HINDALCO", "BAJAJFINSV", 
+  "JSWSTEEL", "ADANIPORTS", "GRASIM", "TATAMOTORS", "DIVISLAB", 
+  "INDUSINDBK", "CIPLA", "APOLLOHOSP", "BRITANNIA", "BAJAJ-AUTO", 
+  "EICHERMOT", "COALINDIA", "UPL", "TATACONSUM", "HEROMOTOCO", 
+  "DRREDDY", "SHREECEM", "BPCL", "LTIM", "ADANIENT"
+]
 
 function HoldingRowInput({ onAdd }: { onAdd: (row: HoldingRow) => void }) {
   const [ticker, setTicker] = useState("")
@@ -192,7 +211,14 @@ function HoldingRowInput({ onAdd }: { onAdd: (row: HoldingRow) => void }) {
         setPrice("")
       }}
     >
-      <TextInput value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="Ticker (e.g. TCS)" required />
+      <div className="relative">
+        <TextInput value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="Ticker (e.g. TCS)" list="onboarding-ticker-suggestions" required />
+        <datalist id="onboarding-ticker-suggestions">
+          {INDIAN_STOCKS.map(symbol => (
+            <option key={symbol} value={symbol} />
+          ))}
+        </datalist>
+      </div>
       <TextInput value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="Quantity" type="number" min="0" step="any" required />
       <TextInput value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Avg price (₹)" type="number" min="0" step="any" required />
       <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"><Plus className="size-4" /> Add</button>

@@ -17,7 +17,7 @@ annotated-types==0.7.0
 
 # Database
 sqlalchemy==2.0.31
-psycopg2-binary==2.9.9
+psycopg[binary]
 alembic==1.13.2
 mako==1.3.5
 
@@ -29,14 +29,13 @@ cryptography==42.0.8
 httpx==0.27.0
 anyio==4.4.0
 
-# Quantitative (declared for future phases; not imported in Phase 1)
 numpy==1.26.4
 pandas==2.2.2
 scipy==1.13.1
 statsmodels==0.14.2
 arch==6.3.0
 cvxpy==1.5.1
-yfinance==0.2.40
+yfinance>=1.7.0
 openpyxl==3.1.5
 python-multipart==0.0.20
 apscheduler==3.10.4

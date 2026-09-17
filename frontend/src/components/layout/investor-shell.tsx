@@ -42,7 +42,7 @@ function getDisplayName(name: string, email: string): string {
 function useContextualCard(path: string) {
   if (path.startsWith("/app/analytics")) return { icon: <BarChart2 className="size-4 text-emerald-700" />, heading: "Data-driven insights.", sub: "Better decisions with Veyra.", cta: "Upgrade →" }
   if (path.startsWith("/app/settings")) return { icon: <TrendingUp className="size-4 text-emerald-700" />, heading: "Invest smarter every day.", sub: "Unlock advanced insights.", cta: "Learn More →" }
-  return { icon: <span className="grid size-5 place-items-center rounded bg-[#14532d] text-[9px] font-bold text-white">V</span>, heading: "Disciplined today.", sub: "A more resilient tomorrow.", cta: null }
+  return { icon: <img src="/logo.png" alt="Veyra Logo" className="size-5" />, heading: "Disciplined today.", sub: "A more resilient tomorrow.", cta: null }
 }
 
 export function InvestorShell({ children }: { children: React.ReactNode }) {
@@ -60,9 +60,7 @@ export function InvestorShell({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="px-5 pb-4 pt-5">
           <div className="flex items-center gap-2.5">
-            <span className="grid size-8 place-items-center rounded-md bg-[#14532d] text-sm font-bold text-white">
-              V
-            </span>
+            <img src="/logo.png" alt="Veyra Logo" className="size-8" />
             <div>
               <p className="text-sm font-bold leading-none tracking-tight text-slate-900">Veyra</p>
               <p className="mt-0.5 text-[10px] leading-tight text-slate-500">
@@ -122,9 +120,7 @@ export function InvestorShell({ children }: { children: React.ReactNode }) {
         <header className="flex h-14 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-5">
           {/* Mobile brand */}
           <div className="flex items-center gap-2 lg:hidden">
-            <span className="grid size-7 place-items-center rounded-md bg-[#14532d] text-xs font-bold text-white">
-              V
-            </span>
+            <img src="/logo.png" alt="Veyra Logo" className="size-7" />
             <span className="text-sm font-bold">Veyra</span>
           </div>
 

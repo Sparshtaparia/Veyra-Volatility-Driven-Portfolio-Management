@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import {
   AlertTriangle,
   ArrowRight,
@@ -23,6 +24,7 @@ import {
   usePortfolio,
 } from "@/hooks/use-portfolio"
 import { SkeletonCard, SkeletonStatCard } from "@/components/common/skeleton"
+import { RebalancePipeline } from "@/components/evaluation/rebalance-pipeline"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -135,24 +137,25 @@ function WhySection({ decision }: { decision?: string }) {
 type Phase = "idle" | "evaluated" | "executed"
 
 export function RebalanceReviewPage() {
+  const queryClient = useQueryClient()
   const portfolioId = getSavedPortfolioId()
   const portfolio   = usePortfolio(portfolioId)
   const holdings    = useHoldings(portfolioId)
   const evaluate    = useEvaluatePortfolio(portfolioId)
   const rebalance   = useExecuteRebalance(portfolioId)
   const [phase, setPhase] = useState<Phase>("idle")
+  const [pipelineRunning, setPipelineRunning] = useState(false)
 
   const allocation = evaluate.data?.allocation_result
   const decision   = allocation?.decision
-  const isHold     = !decision || decision === "HOLD"
+  const isHold     = !decision || decision.startsWith("HOLD")
   const orders     = rebalance.data?.orders ?? []
   const totalCost  = rebalance.data?.total_cost ?? 0
 
   return (
-    <InvestorShell>
-      <div className="px-6 py-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto max-w-4xl space-y-8">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <Zap className="size-5 text-emerald-600" />
@@ -160,7 +163,7 @@ export function RebalanceReviewPage() {
             </div>
             <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900">Rebalance Review</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Analyse your portfolio and simulate the recommended rebalancing. No real trades are executed.
+              Analyse your portfolio and execute the recommended rebalancing.
             </p>
           </div>
           <Link to="/app/evaluation" className="shrink-0 inline-flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition">
@@ -174,7 +177,7 @@ export function RebalanceReviewPage() {
           <ArrowRight className="size-4 text-slate-300 hidden sm:block" />
           <StepPill n={2} label="Review Recommendation" active={phase === "evaluated"} done={phase === "executed"} />
           <ArrowRight className="size-4 text-slate-300 hidden sm:block" />
-          <StepPill n={3} label="Simulate Rebalance"    active={phase === "executed"} done={false} />
+          <StepPill n={3} label="Execute Rebalance"    active={phase === "executed"} done={false} />
         </div>
 
         {!portfolioId ? (
@@ -206,7 +209,7 @@ export function RebalanceReviewPage() {
               </div>
             )}
 
-            {/* Step 2: Show recommendation */}
+                {/* Step 2: Show recommendation */}
             {phase === "evaluated" && (
               <>
                 <div className={`rounded-xl border p-5 shadow-sm animate-fade-up ${isHold ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
@@ -220,23 +223,48 @@ export function RebalanceReviewPage() {
                       </p>
                       <p className={`mt-0.5 text-sm ${isHold ? "text-emerald-700" : "text-amber-700"}`}>
                         {isHold
-                          ? "Your portfolio is well-aligned with current market conditions."
-                          : "Meaningful allocation drift detected. Simulating rebalance is advised."}
+                          ? decision === "HOLD - Insufficient Assets (<3)"
+                            ? "No rebalancing needed. Less than 3 types of assets."
+                            : "Your portfolio is well-aligned with current market conditions."
+                          : "Meaningful allocation drift detected. Executing a rebalance is advised."}
                       </p>
                     </div>
                     {!isHold && (
                       <button
-                        onClick={() => rebalance.mutate(undefined, { onSuccess: () => setPhase("executed") })}
-                        disabled={rebalance.isPending}
+                        onClick={() => {
+                          setPipelineRunning(true)
+                          rebalance.mutate()
+                        }}
+                        disabled={rebalance.isPending || pipelineRunning}
                         className="shrink-0 inline-flex h-10 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition"
                       >
-                        {rebalance.isPending
-                          ? <><LoaderCircle className="size-4 animate-spin" /> Simulating…</>
-                          : <><RefreshCw className="size-4" /> Simulate Rebalance</>}
+                        {rebalance.isPending || pipelineRunning
+                          ? <><LoaderCircle className="size-4 animate-spin" /> Executing…</>
+                          : <><RefreshCw className="size-4" /> Execute Rebalance</>}
                       </button>
                     )}
                   </div>
                 </div>
+
+                {pipelineRunning && (
+                  <div className="mt-6">
+                    <RebalancePipeline running={true} onComplete={() => {
+                      setPipelineRunning(false)
+                      if (!rebalance.isError) {
+                        setPhase("executed")
+                        // Invalidate portfolio and holdings to reflect new state
+                        queryClient.invalidateQueries({ queryKey: ["portfolio", portfolioId] })
+                        queryClient.invalidateQueries({ queryKey: ["holdings", portfolioId] })
+                      }
+                    }} />
+                  </div>
+                )}
+                
+                {rebalance.isError && !pipelineRunning && (
+                  <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                    Simulation failed due to a server error. Please try again.
+                  </div>
+                )}
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {[
@@ -296,23 +324,21 @@ export function RebalanceReviewPage() {
             {/* Step 3: Simulated orders */}
             {phase === "executed" && (
               <>
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm animate-fade-up">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 className="size-6 shrink-0 text-emerald-600" />
-                    <div>
-                      <p className="font-bold text-emerald-900">Simulation complete</p>
-                      <p className="text-sm text-emerald-700">
-                        {orders.length} orders simulated. Total simulated cost: <strong>{INR(totalCost)}</strong>.
-                        No real trades have been executed.
-                      </p>
-                    </div>
-                  </div>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm animate-fade-up">
+                  <CheckCircle2 className="mx-auto size-12 text-emerald-600" />
+                  <h3 className="mt-4 text-xl font-bold text-emerald-900">Execution complete</h3>
+                  <p className="mt-1.5 text-sm text-emerald-700 max-w-sm mx-auto">
+                    {orders.length} orders executed. Total transaction cost: {INR(totalCost)}. Your portfolio has been updated.
+                  </p>
                 </div>
 
                 <div className="grid gap-5 lg:grid-cols-[1.1fr_1fr]">
-                  <div>
-                    <p className="mb-3 text-sm font-semibold text-slate-900">Simulated Orders</p>
-                    <div className="space-y-2">
+                  <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div className="border-b border-slate-200 bg-slate-50 px-5 py-4 flex items-center gap-2">
+                      <Zap className="size-4 text-slate-400" />
+                      <h2 className="text-sm font-bold text-slate-900">Executed Orders</h2>
+                    </div>
+                    <div className="p-5 space-y-2">
                       {orders.length ? orders.map((o, i) => <OrderCard key={i} order={o} i={i} />) : (
                         <p className="text-sm text-slate-400">No orders returned.</p>
                       )}
@@ -339,7 +365,6 @@ export function RebalanceReviewPage() {
             </div>
           </>
         )}
-      </div>
-    </InvestorShell>
+    </div>
   )
 }

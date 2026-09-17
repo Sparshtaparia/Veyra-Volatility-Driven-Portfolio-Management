@@ -51,7 +51,7 @@ class RollingQuantileThreshold:
         self,
         window_length: int = 63,
         high_quantile: float = 0.75,
-        minimum_history: int = 21,
+        minimum_history: int = 1,
         *,
         low_quantile: float = 0.25,
         center_quantile: float = 0.50,

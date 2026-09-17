@@ -225,9 +225,9 @@ function AllocationDonut({
 
 function MarketSnapshot() {
   const indices = [
-    { name: "NIFTY 50",  value: "24,823.10", change: "+0.68%",  up: true },
-    { name: "S&P 500",   value: "5,632.71",  change: "+0.42%",  up: true },
-    { name: "USD/INR",   value: "83.12",     change: "-0.21%",  up: false },
+    { name: "NIFTY 50",  value: "—", change: "—",  up: true },
+    { name: "S&P 500",   value: "—",  change: "—",  up: true },
+    { name: "USD/INR",   value: "—",     change: "—",  up: false },
   ]
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -263,8 +263,8 @@ function RiskMetrics({
   compositeRisk?: { composite_score: number; risk_state: string }
 }) {
   const rows = [
-    { label: "Portfolio Volatility", value: "5.3%", live: false },
-    { label: "Reliability Score",    value: "0.73", live: false },
+    { label: "Portfolio Volatility", value: "—", live: false },
+    { label: "Reliability Score",    value: "—", live: false },
     {
       label: "Composite Risk",
       value: compositeRisk ? compositeRisk.composite_score.toFixed(2) : "—",
@@ -319,19 +319,7 @@ function RecentActivity({ decision }: { decision?: string }) {
           ? "bg-amber-100 text-amber-800"
           : "bg-emerald-100 text-emerald-800",
       time: new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date()),
-    },
-    {
-      label: "Paper Rebalance",
-      badge: "Completed",
-      badgeColor: "bg-blue-100 text-blue-800",
-      time: "01 Sep, 02:15 PM",
-    },
-    {
-      label: "Threshold Update",
-      badge: "—",
-      badgeColor: "bg-slate-100 text-slate-600",
-      time: "28 Aug, 11:12 AM",
-    },
+    }
   ]
 
   return (
@@ -418,9 +406,9 @@ export function InvestorDashboardPage() {
           />
           <StatCard
             label="Today's Change"
-            value="+₹18,420"
-            sub="+1.50%"
-            subPositive
+            value="—"
+            sub="Historical data required"
+            subPositive={false}
             icon={<TrendingUp className="size-4" />}
           />
           <StatCard
@@ -506,9 +494,7 @@ export function InvestorDashboardPage() {
               </p>
             </div>
             <div className="ml-4 flex items-center gap-2 shrink-0">
-              <span className="grid size-7 place-items-center rounded-md bg-[#14532d] text-xs font-bold text-white">
-                V
-              </span>
+              <img src="/logo.png" alt="Veyra Logo" className="size-7" />
               <span className="text-sm font-bold">Veyra</span>
             </div>
           </article>

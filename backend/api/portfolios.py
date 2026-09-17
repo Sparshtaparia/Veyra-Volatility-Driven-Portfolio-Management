@@ -21,6 +21,7 @@ from backend.schemas.evaluation import EvaluatePortfolioRequest, EvaluationRespo
 from backend.schemas.portfolio import (
     AddHoldingRequest,
     CreatePortfolioRequest,
+    UpdatePortfolioRequest,
     HoldingResponse,
     PortfolioResponse,
 )
@@ -45,7 +46,10 @@ def create_portfolio(
         portfolio_id=portfolio.id,
         name=portfolio.name,
         currency=portfolio.currency,
+        total_value=portfolio.total_value,
+        max_weight_constraint=portfolio.max_weight_constraint,
         created_at=portfolio.created_at,
+        updated_at=portfolio.updated_at,
     )
 
 
@@ -61,9 +65,98 @@ def list_portfolios(
             portfolio_id=p.id,
             name=p.name,
             currency=p.currency,
+            total_value=p.total_value or 0.0,
             created_at=p.created_at,
         )
         for p in portfolios
+    ]
+
+
+@router.get("/{portfolio_id}", response_model=PortfolioResponse)
+def get_portfolio(
+    portfolio_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    service = PortfolioService(db)
+    try:
+        portfolio = service.get_portfolio(portfolio_id, user_id=user.user_id)
+        return PortfolioResponse(
+            portfolio_id=portfolio.id,
+            name=portfolio.name,
+            currency=portfolio.currency,
+            total_value=portfolio.total_value or 0.0,
+            max_weight_constraint=portfolio.max_weight_constraint,
+            created_at=portfolio.created_at,
+            updated_at=portfolio.updated_at,
+        )
+    except PortfolioNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+@router.put("/{portfolio_id}", response_model=PortfolioResponse)
+def update_portfolio(
+    portfolio_id: str,
+    request: UpdatePortfolioRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    service = PortfolioService(db)
+    try:
+        portfolio = service.update_portfolio(
+            portfolio_id, 
+            name=request.name, 
+            currency=request.currency, 
+            max_weight_constraint=request.max_weight_constraint,
+            user_id=user.user_id
+        )
+        return PortfolioResponse(
+            portfolio_id=portfolio.id,
+            name=portfolio.name,
+            currency=portfolio.currency,
+            total_value=portfolio.total_value or 0.0,
+            max_weight_constraint=portfolio.max_weight_constraint,
+            created_at=portfolio.created_at,
+            updated_at=portfolio.updated_at,
+        )
+    except PortfolioNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+@router.delete("/{portfolio_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_portfolio(
+    portfolio_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    service = PortfolioService(db)
+    try:
+        service.delete_portfolio(portfolio_id, user_id=user.user_id)
+    except PortfolioNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+
+@router.get("/{portfolio_id}/holdings", response_model=list[HoldingResponse])
+def list_holdings(
+    portfolio_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    service = PortfolioService(db)
+    try:
+        service.get_portfolio(portfolio_id, user_id=user.user_id)
+    except PortfolioNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    holdings = service.repo.get_holdings(portfolio_id)
+    return [
+        HoldingResponse(
+            id=h.id,
+            ticker=h.ticker,
+            quantity=h.quantity,
+            average_price=h.average_price,
+            current_price=h.current_price,
+            market_value=h.market_value,
+            weight=h.weight,
+        )
+        for h in holdings
     ]
 
 
@@ -99,6 +192,59 @@ def add_holding(
         raise HTTPException(status_code=404, detail="Portfolio not found")
     except InvalidPortfolioError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+@router.put(
+    "/{portfolio_id}/holdings/{ticker}", response_model=HoldingResponse
+)
+def update_holding(
+    portfolio_id: str,
+    ticker: str,
+    request: AddHoldingRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    service = PortfolioService(db)
+    try:
+        holding = service.update_holding(
+            portfolio_id=portfolio_id,
+            ticker=ticker,
+            quantity=request.quantity,
+            average_price=request.average_price,
+            current_price=request.current_price,
+            user_id=user.user_id,
+        )
+        return HoldingResponse(
+            id=holding.id,
+            ticker=holding.ticker,
+            quantity=holding.quantity,
+            average_price=holding.average_price,
+            current_price=holding.current_price,
+            market_value=holding.market_value,
+            weight=holding.weight,
+        )
+    except PortfolioNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except InvalidPortfolioError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+@router.delete(
+    "/{portfolio_id}/holdings/{ticker}", status_code=status.HTTP_204_NO_CONTENT
+)
+def delete_holding(
+    portfolio_id: str,
+    ticker: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    service = PortfolioService(db)
+    try:
+        service.delete_holding(portfolio_id, ticker, user_id=user.user_id)
+    except PortfolioNotFoundError:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post(

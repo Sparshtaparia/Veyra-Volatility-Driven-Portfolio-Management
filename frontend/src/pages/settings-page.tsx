@@ -1,7 +1,7 @@
-import { useState } from "react"
-import { Check } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Check, LoaderCircle } from "lucide-react"
 import { useAuth } from "@/auth/auth-context"
-import { usePortfolio } from "@/hooks/use-portfolio"
+import { usePortfolio, useUpdatePortfolio } from "@/hooks/use-portfolio"
 import { getSavedPortfolioId } from "@/hooks/use-portfolio"
 import { EmptyState, Field, Notice, Panel, PanelHeader, PrimaryButton, SelectInput, TextInput } from "@/components/ui/primitives"
 import { Link } from "react-router-dom"
@@ -10,12 +10,31 @@ export function SettingsPage() {
   const { user } = useAuth()
   const portfolioId = getSavedPortfolioId()
   const portfolio = usePortfolio(portfolioId)
+  const updatePortfolio = useUpdatePortfolio(portfolioId)
+  
   const [frequency, setFrequency] = useState("Monthly")
   const [maxAllocation, setMaxAllocation] = useState("40")
   const [saved, setSaved] = useState(false)
 
+  useEffect(() => {
+    if (portfolio.data?.max_weight_constraint) {
+      setMaxAllocation((portfolio.data.max_weight_constraint * 100).toString())
+    }
+  }, [portfolio.data])
+
   if (!portfolioId || !portfolio.data) {
     return <EmptyState title="No portfolio" text="Create a portfolio to configure preferences." action={<Link to="/onboarding" className="inline-flex h-11 items-center rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white">Set up a portfolio</Link>} />
+  }
+
+  const handleSave = () => {
+    updatePortfolio.mutate(
+      { 
+        name: portfolio.data.name, 
+        currency: portfolio.data.currency, 
+        max_weight_constraint: parseFloat(maxAllocation) / 100 
+      },
+      { onSuccess: () => setSaved(true) }
+    )
   }
 
   return (
@@ -63,11 +82,12 @@ export function SettingsPage() {
         </Panel>
 
         <div className="flex items-center gap-4">
-          <PrimaryButton onClick={() => setSaved(true)}>Save preferences</PrimaryButton>
+          <PrimaryButton onClick={handleSave} disabled={updatePortfolio.isPending}>
+            {updatePortfolio.isPending ? <><LoaderCircle className="size-4 animate-spin mr-2 inline" /> Saving...</> : "Save preferences"}
+          </PrimaryButton>
           {saved && <p className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700"><Check className="size-4" /> Saved</p>}
         </div>
-        <p className="text-xs text-slate-400">Frequency and limits are stored in this demo session; backend persistence arrives with the production settings layer.</p>
-        {portfolio.error && <Notice text={portfolio.error.message} />}
+        {(portfolio.error || updatePortfolio.error) && <Notice text={portfolio.error?.message || updatePortfolio.error?.message || "An error occurred"} />}
       </section>
     </div>
   )

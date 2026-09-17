@@ -5,6 +5,18 @@ import { Field, Notice, TextInput } from "@/components/ui/primitives"
 
 import { useToast } from "@/components/common/toast"
 
+const INDIAN_STOCKS = [
+  "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "HINDUNILVR", 
+  "SBIN", "BHARTIARTL", "ITC", "KOTAKBANK", "LT", "AXISBANK", 
+  "BAJFINANCE", "ASIANPAINT", "MARUTI", "SUNPHARMA", "TITAN", 
+  "ULTRACEMCO", "WIPRO", "NESTLEIND", "POWERGRID", "NTPC", "M&M", 
+  "TATASTEEL", "TECHM", "HCLTECH", "ONGC", "HINDALCO", "BAJAJFINSV", 
+  "JSWSTEEL", "ADANIPORTS", "GRASIM", "TATAMOTORS", "DIVISLAB", 
+  "INDUSINDBK", "CIPLA", "APOLLOHOSP", "BRITANNIA", "BAJAJ-AUTO", 
+  "EICHERMOT", "COALINDIA", "UPL", "TATACONSUM", "HEROMOTOCO", 
+  "DRREDDY", "SHREECEM", "BPCL", "LTIM", "ADANIENT"
+]
+
 export function AddHoldingForm({ portfolioId, onAdded }: { portfolioId: string; onAdded?: () => void }) {
   const [ticker, setTicker] = useState("")
   const [quantity, setQuantity] = useState("")
@@ -36,7 +48,14 @@ export function AddHoldingForm({ portfolioId, onAdded }: { portfolioId: string; 
     >
       <h2 className="flex items-center gap-2 text-base font-semibold text-slate-950"><Plus className="size-4 text-emerald-600" /> Add a holding</h2>
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
-        <Field label="Ticker"><TextInput value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="TCS" autoFocus required /></Field>
+        <Field label="Ticker">
+          <TextInput value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="TCS" list="ticker-suggestions" autoFocus required />
+          <datalist id="ticker-suggestions">
+            {INDIAN_STOCKS.map(symbol => (
+              <option key={symbol} value={symbol} />
+            ))}
+          </datalist>
+        </Field>
         <Field label="Quantity"><TextInput value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="20" type="number" min="0" step="any" required /></Field>
         <Field label="Average price"><TextInput value={price} onChange={(e) => setPrice(e.target.value)} placeholder="₹3,500" type="number" min="0" step="any" required /></Field>
       </div>
