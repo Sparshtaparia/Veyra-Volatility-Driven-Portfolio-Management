@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom"
-import { type Role, useAuth } from "@/auth/auth-context"
+import { type Role, useAuth } from "@/auth/auth-model"
 
 export function RoleGuard({ role, children }: { role: Role; children: React.ReactNode }) {
   const { user, loading } = useAuth()

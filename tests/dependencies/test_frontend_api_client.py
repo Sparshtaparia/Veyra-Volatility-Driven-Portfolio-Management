@@ -1,5 +1,6 @@
 """Contract check for Supabase session forwarding in the browser API client."""
 
+import subprocess
 from pathlib import Path
 
 
@@ -24,3 +25,35 @@ def test_frontend_login_uses_the_shared_supabase_client() -> None:
     assert "demoAdmin" not in auth_source
     assert sum("createClient(" in path.read_text() for path in root.rglob("*.ts*")) == 1
     assert "persistSession: true" in supabase_source
+
+
+def test_frontend_auth_handles_confirmation_recovery_and_safe_errors() -> None:
+    root = Path(__file__).parents[2] / "frontend/src"
+    context = (root / "auth/auth-context.tsx").read_text()
+    signup = (root / "pages/sign-up-page.tsx").read_text()
+    errors = (root / "auth/auth-errors.ts").read_text()
+    router = (root / "app/router.tsx").read_text()
+
+    assert 'return "confirmation_required"' in context
+    assert "supabase.auth.resend" in context
+    assert "supabase.auth.updateUser" in context
+    assert 'redirectTo: `${window.location.origin}/reset-password`' in context
+    assert "setResendCooldown(60)" in signup
+    assert "Too many verification emails were requested" in errors
+    assert 'path: "/reset-password"' in router
+
+
+def test_local_environment_files_are_ignored_and_tokens_are_not_logged() -> None:
+    root = Path(__file__).parents[2]
+    ignored = subprocess.run(
+        ["git", "check-ignore", "frontend/.env.local"],
+        cwd=root,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    client_source = (root / "frontend/src/api/client.ts").read_text()
+
+    assert ignored.returncode == 0
+    assert "console.log" not in client_source
+    assert "console.debug" not in client_source

@@ -1,13 +1,20 @@
 from datetime import date
+from typing import Any, cast
 from uuid import UUID
+
 from sqlalchemy.orm import Session
 
 from backend.services.portfolio_service import PortfolioService
 from backend.services.signal_decision_evaluation_service import SignalEvaluationService
-from database.models import RebalanceEventModel, TradeModel, PortfolioSnapshotModel, VolatilityStateModel
+from database.models import (
+    PortfolioSnapshotModel,
+    RebalanceEventModel,
+    TradeModel,
+    VolatilityStateModel,
+)
+from execution.paper.executor import PaperExecutor
 from quant_engine.data.provider import MarketDataProvider
 from quant_engine.rebalance.service import RebalancePlanner
-from execution.paper.executor import PaperExecutor
 
 
 class RebalanceService:
@@ -24,6 +31,7 @@ class RebalanceService:
         portfolio_id: str,
         as_of_date: date,
         *,
+        evaluation_id: UUID | None = None,
         evaluation_result=None,
     ):
         # 1. Fetch current portfolio
@@ -44,8 +52,14 @@ class RebalanceService:
         ]
 
         # 2. Run Phase 1-6 Pipeline to get target allocation
-        eval_result = evaluation_result or self.signal_service.evaluate(portfolio_id, as_of_date)
+        eval_result = evaluation_result or self.signal_service.evaluate(
+            portfolio_id,
+            as_of_date,
+            evaluation_id=evaluation_id,
+        )
         allocation = eval_result.allocation_result
+        if allocation is None:
+            raise ValueError("Cannot execute rebalance: evaluation has no allocation result")
 
         if allocation.decision == "HOLD":
             raise ValueError("Cannot execute rebalance: Decision is HOLD")
@@ -131,8 +145,8 @@ class RebalanceService:
         #       These are computed from PAST returns only (no lookahead).
         #   t1: Compute feedback error and T1.
         #   T1 is persisted here and read by the NEXT evaluation's regime service.
-        from quant_engine.feedback.service import FeedbackService
         from database.models import FeedbackUpdateModel, RegimeStateModel
+        from quant_engine.feedback.service import FeedbackService
 
         feedback_service = FeedbackService()
 
@@ -154,7 +168,9 @@ class RebalanceService:
         )
 
         if latest_feedback:
-            prev_threshold = float(latest_feedback.updated_state.get("adaptive_threshold", 0.05))
+            prev_threshold = float(
+                cast(Any, latest_feedback.updated_state.get("adaptive_threshold", 0.05))
+            )
         elif latest_regime:
             prev_threshold = latest_regime.adaptive_threshold
         else:

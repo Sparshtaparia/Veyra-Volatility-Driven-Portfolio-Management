@@ -1,6 +1,8 @@
-from uuid import UUID
 from datetime import date
+from uuid import UUID
+
 from quant_engine.feedback.models import FeedbackCycle
+
 
 class FeedbackService:
     """

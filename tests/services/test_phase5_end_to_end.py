@@ -40,6 +40,7 @@ def test_upload_evaluate_optimize_rebalance_persist_and_feedback(
             for ticker in ("AAA", "BBB", "CCC")
         ],
         as_of_date,
+        "integration-test-user",
     )
     phase3 = VolatilityEvaluationService(
         db_session,

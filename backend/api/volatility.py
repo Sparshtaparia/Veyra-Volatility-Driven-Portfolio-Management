@@ -10,6 +10,7 @@ from backend.dependencies.auth import CurrentUser, require_auth
 from backend.dependencies.db import get_db
 from backend.dependencies.factor_data import get_factor_data_provider
 from backend.dependencies.market_data import get_market_data_provider
+from backend.dependencies.ownership import require_evaluation_owner, require_portfolio_owner
 from backend.exceptions import (
     EvaluationNotFoundError,
     InvalidEvaluationError,
@@ -18,15 +19,19 @@ from backend.exceptions import (
     VolatilityEvaluationNotFoundError,
     VolatilityPersistenceError,
 )
+from backend.schemas.signal_control import (
+    AssetDecisionResponse,
+    SignalDecisionEvaluationRequest,
+    SignalDecisionEvaluationResponse,
+)
 from backend.schemas.signals import SignalEvaluationResponse
 from backend.schemas.volatility import (
     MarketRegimeResponse,
     VolatilityEvaluationRequest,
     VolatilityEvaluationResponse,
 )
-from backend.services.volatility_evaluation_service import VolatilityEvaluationService
 from backend.services.signal_decision_evaluation_service import SignalEvaluationService
-from backend.schemas.signal_control import SignalDecisionEvaluationRequest, SignalDecisionEvaluationResponse, AssetDecisionResponse
+from backend.services.volatility_evaluation_service import VolatilityEvaluationService
 from quant_engine.data.provider import MarketDataProvider
 from quant_engine.factors.provider import FactorDataProvider
 from quant_engine.regimes.exceptions import (
@@ -84,6 +89,7 @@ def evaluate_signals(
     factor_provider: FactorDataProvider = Depends(get_factor_data_provider),
     user: CurrentUser = Depends(require_auth),
 ):
+    require_portfolio_owner(db, portfolio_id, user)
     try:
         try:
             result = _signal_service(db, provider).evaluate(
@@ -141,6 +147,7 @@ def evaluate_volatility(
     provider: MarketDataProvider = Depends(get_market_data_provider),
     user: CurrentUser = Depends(require_auth),
 ):
+    require_portfolio_owner(db, portfolio_id, user)
     try:
         result = _service(db, provider).evaluate(
             portfolio_id,
@@ -162,6 +169,7 @@ def get_evaluation_volatility(
     provider: MarketDataProvider = Depends(get_market_data_provider),
     user: CurrentUser = Depends(require_auth),
 ):
+    require_evaluation_owner(db, evaluation_id, user)
     try:
         result = _service(db, provider).get_evaluation(evaluation_id)
         return VolatilityEvaluationResponse.model_validate(result)
@@ -179,6 +187,7 @@ def get_evaluation_regime(
     provider: MarketDataProvider = Depends(get_market_data_provider),
     user: CurrentUser = Depends(require_auth),
 ):
+    require_evaluation_owner(db, evaluation_id, user)
     try:
         result = _service(db, provider).get_regime(evaluation_id)
         return MarketRegimeResponse.model_validate(result)
@@ -196,6 +205,7 @@ def get_latest_portfolio_regime(
     provider: MarketDataProvider = Depends(get_market_data_provider),
     user: CurrentUser = Depends(require_auth),
 ):
+    require_portfolio_owner(db, portfolio_id, user)
     try:
         result = _service(db, provider).get_latest_regime(portfolio_id)
         return MarketRegimeResponse.model_validate(result)

@@ -14,13 +14,12 @@ Tests cover:
 - invalid observed_volatility
 - FeedbackCycle model validation
 """
-import pytest
 from datetime import date
 from uuid import uuid4
 
-from quant_engine.feedback.service import FeedbackService
-from quant_engine.feedback.models import FeedbackCycle
+import pytest
 
+from quant_engine.feedback.service import FeedbackService
 
 EVALUATION_ID = uuid4()
 PORTFOLIO_ID = "portfolio_test_001"

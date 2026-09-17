@@ -4,9 +4,9 @@ import { SiteHeader } from "@/components/layout/site-header"
 import { useScrollReveal } from "@/hooks/use-scroll-reveal"
 
 export function HomePage() {
-  const heroReveal = useScrollReveal()
-  const worksReveal = useScrollReveal({ threshold: 0.2, triggerOnce: true })
-  const whyReveal = useScrollReveal({ threshold: 0.2, triggerOnce: true })
+  const [heroRef, heroInView] = useScrollReveal()
+  const [worksRef, worksInView] = useScrollReveal({ threshold: 0.2, triggerOnce: true })
+  const [whyRef, whyInView] = useScrollReveal({ threshold: 0.2, triggerOnce: true })
 
   return (
     <div className="min-h-screen bg-[#f8faf9] text-slate-950 overflow-x-hidden">
@@ -14,9 +14,9 @@ export function HomePage() {
       <main>
         {/* Hero Section */}
         <section 
-          ref={heroReveal.ref as any}
+          ref={heroRef}
           className={`relative overflow-hidden px-5 pb-16 pt-16 sm:px-8 sm:pb-24 sm:pt-24 transition-all duration-1000 ${
-            heroReveal.inView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+            heroInView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
           }`}
         >
           <div className="absolute inset-x-0 top-0 -z-0 h-96 bg-[radial-gradient(circle_at_65%_5%,#d1fae5,transparent_38%),radial-gradient(circle_at_10%_25%,#e0f2fe,transparent_32%)]" />
@@ -44,11 +44,11 @@ export function HomePage() {
         {/* How It Works Section */}
         <section 
           id="how-it-works" 
-          ref={worksReveal.ref as any}
+          ref={worksRef}
           className="border-t border-slate-200 bg-white px-5 py-16 sm:px-8 sm:py-20"
         >
           <div className="mx-auto max-w-6xl">
-            <div className={`transition-all duration-700 delay-100 ${worksReveal.inView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
+            <div className={`transition-all duration-700 delay-100 ${worksInView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
               <p className="text-center text-sm font-semibold uppercase tracking-wider text-emerald-700">How it works</p>
               <h2 className="mt-2 text-center text-3xl font-semibold tracking-tight">Monitor → Evaluate → Adapt</h2>
             </div>
@@ -59,34 +59,34 @@ export function HomePage() {
                 label="YOUR PORTFOLIO" 
                 text="Veyra watches your holdings, their prices and how the market is moving." 
                 accent="bg-emerald-500" 
-                inView={worksReveal.inView} 
+                inView={worksInView}
                 delay="delay-[200ms]" 
               />
-              <FlowArrow inView={worksReveal.inView} delay="delay-[300ms]" />
+              <FlowArrow inView={worksInView} delay="delay-[300ms]" />
               <FlowStep 
                 icon={<Waves className="size-5" />} 
                 label="MARKET CONDITIONS" 
                 text="Volatility regimes and price signals are read from the market — not from guesswork." 
                 accent="bg-sky-500" 
-                inView={worksReveal.inView} 
+                inView={worksInView}
                 delay="delay-[400ms]" 
               />
-              <FlowArrow inView={worksReveal.inView} delay="delay-[500ms]" />
+              <FlowArrow inView={worksInView} delay="delay-[500ms]" />
               <FlowStep 
                 icon={<RefreshCw className="size-5" />} 
                 label="VEYRA EVALUATION" 
                 text="A risk-aware engine combines the market state, your portfolio and signal reliability." 
                 accent="bg-indigo-500" 
-                inView={worksReveal.inView} 
+                inView={worksInView}
                 delay="delay-[600ms]" 
               />
-              <FlowArrow inView={worksReveal.inView} delay="delay-[700ms]" />
+              <FlowArrow inView={worksInView} delay="delay-[700ms]" />
               <FlowStep 
                 icon={<Scale className="size-5" />} 
                 label="HOLD / ADAPT" 
                 text="You get a clear answer: hold, or review the recommended change." 
                 accent="bg-amber-500" 
-                inView={worksReveal.inView} 
+                inView={worksInView}
                 delay="delay-[800ms]" 
               />
             </div>
@@ -96,11 +96,11 @@ export function HomePage() {
         {/* Why Veyra Section */}
         <section 
           id="why-veyra" 
-          ref={whyReveal.ref as any}
+          ref={whyRef}
           className="px-5 py-16 sm:px-8 sm:py-20"
         >
           <div className="mx-auto max-w-6xl">
-            <div className={`transition-all duration-700 delay-100 ${whyReveal.inView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
+            <div className={`transition-all duration-700 delay-100 ${whyInView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
               <p className="text-center text-sm font-semibold uppercase tracking-wider text-emerald-700">Why Veyra</p>
               <h2 className="mt-2 text-center text-3xl font-semibold tracking-tight">Built for investors, powered by markets</h2>
             </div>
@@ -110,28 +110,28 @@ export function HomePage() {
                 icon={<Waves className="size-5" />} 
                 title="Volatility-aware" 
                 text="Recognizes when markets get choppy and treats calm and chaotic periods differently." 
-                inView={whyReveal.inView} 
+                inView={whyInView}
                 delay="delay-[200ms]" 
               />
               <ValueCard 
                 icon={<ShieldCheck className="size-5" />} 
                 title="Risk-aware" 
                 text="Weighs concentration and exposure in every recommendation, not just raw returns." 
-                inView={whyReveal.inView} 
+                inView={whyInView}
                 delay="delay-[300ms]" 
               />
               <ValueCard 
                 icon={<RefreshCw className="size-5" />} 
                 title="Adaptive" 
                 text="Adjusts its own sensitivity over time so guidance stays relevant as conditions change." 
-                inView={whyReveal.inView} 
+                inView={whyInView}
                 delay="delay-[400ms]" 
               />
               <ValueCard 
                 icon={<MonitorCheck className="size-5" />} 
                 title="Portfolio-focused" 
                 text="Starts from the portfolio you actually hold and only tells you to act when needed." 
-                inView={whyReveal.inView} 
+                inView={whyInView}
                 delay="delay-[500ms]" 
               />
             </div>

@@ -26,7 +26,7 @@ export function AnalyticsPage() {
   const cumulative = costBasis ? (totalValue - costBasis) / costBasis : null
   const volatility = evaluation?.controls[0]?.volatility_state ?? null
   const turnover = evaluation?.allocation_result?.total_turnover ?? null
-  const rebalances = (evaluations.data ?? []).filter((item) => item.decision === "REBALANCE_REQUIRED").length + (execution ? 1 : 0)
+  const rebalances = (evaluations.data ?? []).filter((item) => item.decision !== "HOLD").length + (execution ? 1 : 0)
 
   return (
     <div className="mx-auto max-w-6xl">

@@ -1,4 +1,3 @@
-import { useEffect, useMemo } from "react"
 import {
   ArrowRight,
   CheckCircle2,
@@ -16,7 +15,7 @@ import {
   Tooltip,
 } from "recharts"
 import { InvestorShell } from "@/components/layout/investor-shell"
-import { useAuth } from "@/auth/auth-context"
+import { useAuth } from "@/auth/auth-model"
 import {
   getSavedPortfolioId,
   useEvaluatePortfolio,
@@ -29,8 +28,6 @@ import { useDemoSeed } from "@/hooks/use-demo-seed"
 
 const INR = (v: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v)
-
-const pct = (v: number) => `${(v * 100).toFixed(2)}%`
 
 const HOLD_COLOURS = ["#16a34a", "#3b82f6", "#f59e0b", "#8b5cf6", "#ef4444", "#0ea5e9", "#ec4899"]
 
@@ -57,14 +54,12 @@ function StatCard({
   sub,
   subPositive,
   icon,
-  sparkColor = "#16a34a",
 }: {
   label: string
   value: string
   sub?: string
   subPositive?: boolean
   icon: React.ReactNode
-  sparkColor?: string
 }) {
   return (
     <article className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
@@ -153,11 +148,9 @@ function DecisionCard({
 function AllocationDonut({
   holdings,
   totalValue,
-  currency,
 }: {
   holdings: Array<{ ticker: string; weight: number; market_value: number }>
   totalValue: number
-  currency: string
 }) {
   const data = holdings.map((h, i) => ({
     name: h.ticker,
@@ -191,7 +184,7 @@ function AllocationDonut({
                 dataKey="value"
                 paddingAngle={2}
               >
-                {data.map((entry, i) => (
+                {data.map((entry) => (
                   <Cell key={entry.name} fill={entry.fill} />
                 ))}
               </Pie>
@@ -459,7 +452,6 @@ export function InvestorDashboardPage() {
               <AllocationDonut
                 holdings={holdings.data}
                 totalValue={totalValue}
-                currency={portfolio.data?.currency ?? "INR"}
               />
             ) : (
               <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

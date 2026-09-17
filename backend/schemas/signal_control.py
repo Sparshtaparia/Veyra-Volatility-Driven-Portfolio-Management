@@ -1,8 +1,11 @@
 """API contracts for Phase 4 decision-level outputs."""
 from datetime import date
 from uuid import UUID
+
 from pydantic import BaseModel
+
 from quant_engine.control.models import DecisionState
+from quant_engine.optimization.models import AllocationResult
 from quant_engine.reliability.models import ReliabilityLevel
 from quant_engine.risk.models import RiskLevel
 from quant_engine.signals.models import SignalDirection
@@ -27,9 +30,6 @@ class AssetDecisionResponse(BaseModel):
     risk_state: RiskLevel
     reliability_state: ReliabilityLevel
     reason_codes: list[str]
-
-
-from quant_engine.optimization.models import AllocationResult
 
 class SignalDecisionEvaluationResponse(BaseModel):
     evaluation_id: UUID

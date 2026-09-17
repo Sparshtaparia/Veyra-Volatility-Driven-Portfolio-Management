@@ -13,9 +13,6 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
       error,
     } = await supabase.auth.getSession()
     if (error) console.warn("Unable to read Supabase session")
-    if (import.meta.env.DEV) {
-      console.debug("[auth] Supabase session present:", Boolean(session))
-    }
     const headers = new Headers(options.headers)
     if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json")
     if (session?.access_token && !headers.has("Authorization")) {

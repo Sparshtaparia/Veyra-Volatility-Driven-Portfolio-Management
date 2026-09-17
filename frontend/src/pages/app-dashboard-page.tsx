@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { RefreshCw } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { useAuth } from "@/auth/auth-context"
+import { useAuth } from "@/auth/auth-model"
 import { useEvaluatePortfolio, useEvaluations, useHoldings, usePortfolio, getSavedPortfolioId } from "@/hooks/use-portfolio"
 import { readLatestEvaluation, writeLatestEvaluation, readLatestExecution } from "@/lib/evaluation-store"
 import { currency, formatDate, percent, signedPercent } from "@/lib/format"
@@ -127,7 +127,7 @@ export function AppDashboardPage() {
                       label="Portfolio Evaluation"
                       detail={item.trigger.replaceAll("_", " ")}
                       badge={item.decision.replaceAll("_", " ")}
-                      tone={item.decision === "REBALANCE_REQUIRED" ? "amber" : "emerald"}
+                      tone={item.decision !== "HOLD" ? "amber" : "emerald"}
                       onOpen={() => navigate("/app/activity")}
                     />
                   ))

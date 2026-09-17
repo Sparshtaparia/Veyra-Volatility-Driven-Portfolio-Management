@@ -6,36 +6,9 @@
  *
  * Wrap your app root (or shell) with <Toaster /> once.
  */
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from "react"
+import { useCallback, useEffect, useState } from "react"
 import { CheckCircle2, Info, XCircle, AlertTriangle, X } from "lucide-react"
-
-// ─── Types ────────────────────────────────────────────────────────────────
-
-type ToastType = "success" | "error" | "info" | "warning"
-
-type Toast = {
-  id: string
-  title: string
-  description?: string
-  type?: ToastType
-  duration?: number
-}
-
-type ToastContextValue = {
-  toast: (opts: Omit<Toast, "id">) => void
-}
-
-// ─── Context ──────────────────────────────────────────────────────────────
-
-const ToastContext = createContext<ToastContextValue | null>(null)
+import { ToastContext, type Toast, type ToastType } from "@/components/common/toast-context"
 
 // ─── Provider ─────────────────────────────────────────────────────────────
 
@@ -115,12 +88,4 @@ function ToastItem({ toast: t, onDismiss }: { toast: Toast; onDismiss: (id: stri
       </button>
     </div>
   )
-}
-
-// ─── Hook ─────────────────────────────────────────────────────────────────
-
-export function useToast() {
-  const ctx = useContext(ToastContext)
-  if (!ctx) throw new Error("useToast must be used inside <ToastProvider>")
-  return ctx
 }

@@ -1,4 +1,5 @@
 import pytest
+
 from quant_engine.risk.models import RiskState
 from quant_engine.risk.service import CompositeRiskService
 

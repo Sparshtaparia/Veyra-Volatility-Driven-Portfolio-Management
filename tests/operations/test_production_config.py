@@ -1,5 +1,6 @@
 """Production settings, pooling, readiness, and API-security tests."""
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -7,18 +8,17 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 import database.session as database_session
-from backend.middleware.security import ApiSecurityMiddleware
+from backend.middleware.security import SecurityHeadersMiddleware
 from backend.operations.health import EXPECTED_SCHEMA_REVISION, database_readiness
 from backend.operations.scheduler import SchedulerService
 from config.settings import Settings
 
 
-def test_production_requires_postgres_and_strong_api_key() -> None:
+def test_production_requires_postgres() -> None:
     try:
         Settings(
             database_url="sqlite:///:memory:",
             app_env="production",
-            api_key="short",
         )
     except ValidationError as error:
         message = str(error)
@@ -32,7 +32,8 @@ def test_production_postgres_pool_configuration(monkeypatch) -> None:
     settings = Settings(
         database_url="postgresql+psycopg2://user:pass@db.example:5432/veyra",
         app_env="production",
-        api_key="x" * 32,
+        supabase_url="https://project.supabase.co",
+        supabase_jwks_url="https://project.supabase.co/auth/v1/.well-known/jwks.json",
         cors_origins=["https://veyra.example"],
         trusted_hosts=["veyra.example"],
         database_pool_size=7,
@@ -45,6 +46,48 @@ def test_production_postgres_pool_configuration(monkeypatch) -> None:
     assert engine.pool.size() == 7
     assert engine.pool._max_overflow == 3
     engine.dispose()
+
+
+def test_production_requires_supabase_jwt_configuration_and_deployed_hosts() -> None:
+    with pytest.raises(ValidationError, match="SUPABASE_URL and SUPABASE_JWKS_URL"):
+        Settings(
+            _env_file=None,
+            database_url="postgresql://user:pass@db.example/veyra",
+            app_env="production",
+            cors_origins=["https://app.example"],
+            trusted_hosts=["api.example"],
+        )
+
+    with pytest.raises(ValidationError, match="deployed origins"):
+        Settings(
+            database_url="postgresql://user:pass@db.example/veyra",
+            app_env="production",
+            supabase_url="https://project.supabase.co",
+            supabase_jwks_url="https://project.supabase.co/auth/v1/.well-known/jwks.json",
+            cors_origins=["http://localhost:5173"],
+            trusted_hosts=["localhost"],
+        )
+
+
+def test_production_rejects_cross_project_jwks_and_insecure_supabase_database() -> None:
+    common = {
+        "app_env": "production",
+        "supabase_url": "https://project.supabase.co",
+        "cors_origins": ["https://app.example"],
+        "trusted_hosts": ["api.example"],
+    }
+    with pytest.raises(ValidationError, match="must belong to SUPABASE_URL"):
+        Settings(
+            database_url="postgresql://user:pass@db.example/veyra",
+            supabase_jwks_url="https://other.supabase.co/auth/v1/.well-known/jwks.json",
+            **common,
+        )
+    with pytest.raises(ValidationError, match="sslmode=require"):
+        Settings(
+            database_url="postgresql://user:pass@pooler.supabase.com/veyra",
+            supabase_jwks_url="https://project.supabase.co/auth/v1/.well-known/jwks.json",
+            **common,
+        )
 
 
 def test_database_readiness_checks_connectivity_and_revision() -> None:
@@ -66,9 +109,9 @@ def test_database_readiness_checks_connectivity_and_revision() -> None:
     }
 
 
-def test_api_key_middleware_protects_api_but_not_health() -> None:
+def test_security_headers_middleware_hardens_responses() -> None:
     app = FastAPI()
-    app.add_middleware(ApiSecurityMiddleware, api_prefix="/api/v1", api_key="secret-key")
+    app.add_middleware(SecurityHeadersMiddleware)
 
     @app.get("/api/v1/system/status")
     def protected():
@@ -80,11 +123,11 @@ def test_api_key_middleware_protects_api_but_not_health() -> None:
 
     client = TestClient(app)
 
-    assert client.get("/api/v1/system/status").status_code == 401
-    assert (
-        client.get("/api/v1/system/status", headers={"X-API-Key": "secret-key"}).status_code == 200
-    )
-    assert client.get("/health/live").status_code == 200
+    response = client.get("/api/v1/system/status")
+    assert response.status_code == 200
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert client.get("/health/live").headers["cache-control"] == "no-store"
 
 
 def test_scheduler_registers_bounded_single_instance_jobs() -> None:

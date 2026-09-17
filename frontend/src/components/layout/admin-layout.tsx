@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Activity, FileClock, LayoutGrid, LogOut, Menu, Settings2, UserCircle2, Users, X } from "lucide-react"
 import { Link, NavLink, Outlet } from "react-router-dom"
-import { useAuth } from "@/auth/auth-context"
+import { useAuth } from "@/auth/auth-model"
 import { cn } from "cn"
 
 const navItems = [

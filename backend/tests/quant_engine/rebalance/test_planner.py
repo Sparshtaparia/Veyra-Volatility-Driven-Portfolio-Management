@@ -1,9 +1,11 @@
-import pytest
 from uuid import uuid4
 
-from quant_engine.optimization.models import AllocationResult, AllocationDelta
+import pytest
+
+from quant_engine.optimization.models import AllocationDelta, AllocationResult
 from quant_engine.rebalance.models import RebalanceAction
 from quant_engine.rebalance.service import RebalancePlanner
+
 
 def test_planner_buy_sell_hold():
     planner = RebalancePlanner(significance_threshold_value=1.0)

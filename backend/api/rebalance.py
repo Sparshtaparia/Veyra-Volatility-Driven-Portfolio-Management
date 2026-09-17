@@ -1,14 +1,16 @@
 from datetime import date
-from typing import Optional
+from typing import Any, Literal, cast
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from backend.dependencies.auth import CurrentUser, require_auth
 from backend.dependencies.db import get_db
 from backend.dependencies.market_data import get_market_data_provider
-from backend.services.rebalance_service import RebalanceService
 from backend.services.portfolio_service import PortfolioService
+from backend.services.rebalance_service import RebalanceService
 from quant_engine.data.provider import MarketDataProvider
 
 router = APIRouter(tags=["rebalance"])
@@ -16,6 +18,8 @@ router = APIRouter(tags=["rebalance"])
 
 class RebalanceRequest(BaseModel):
     as_of_date: date
+    evaluation_id: UUID
+    approved: Literal[True]
 
 
 class FeedbackResponse(BaseModel):
@@ -47,7 +51,11 @@ def execute_rebalance(
 
     service = RebalanceService(db, provider)
     try:
-        result = service.execute_paper_rebalance(portfolio_id, request.as_of_date)
+        result = service.execute_paper_rebalance(
+            portfolio_id,
+            request.as_of_date,
+            evaluation_id=request.evaluation_id,
+        )
         return result
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
@@ -57,7 +65,7 @@ def execute_rebalance(
 
 @router.get(
     "/portfolios/{portfolio_id}/feedback",
-    response_model=Optional[FeedbackResponse],
+    response_model=FeedbackResponse | None,
 )
 def get_feedback(
     portfolio_id: str,
@@ -93,9 +101,15 @@ def get_feedback(
 
     return FeedbackResponse(
         portfolio_id=portfolio_id,
-        previous_threshold=float(latest.previous_state.get("adaptive_threshold", 0.0)),
-        observed_volatility=float(latest.observed_outcome.get("observed_volatility", 0.0)),
-        feedback_error=float(latest.observed_outcome.get("feedback_error", 0.0)),
-        updated_threshold=float(latest.updated_state.get("adaptive_threshold", 0.0)),
+        previous_threshold=float(
+            cast(Any, latest.previous_state.get("adaptive_threshold", 0.0))
+        ),
+        observed_volatility=float(
+            cast(Any, latest.observed_outcome.get("observed_volatility", 0.0))
+        ),
+        feedback_error=float(cast(Any, latest.observed_outcome.get("feedback_error", 0.0))),
+        updated_threshold=float(
+            cast(Any, latest.updated_state.get("adaptive_threshold", 0.0))
+        ),
         timestamp=latest.observation_date,
     )

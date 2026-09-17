@@ -18,6 +18,7 @@ class PortfolioResponse(BaseModel):
     portfolio_id: str
     name: str
     currency: str
+    total_value: float
     created_at: datetime
 
 

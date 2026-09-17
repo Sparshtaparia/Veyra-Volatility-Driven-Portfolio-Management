@@ -5,9 +5,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.dependencies.auth import CurrentUser, require_auth
 from backend.dependencies.db import get_db
 from backend.dependencies.factor_data import get_factor_data_provider
 from backend.dependencies.market_data import get_market_data_provider
+from backend.dependencies.ownership import require_evaluation_owner, require_portfolio_owner
 from backend.exceptions import (
     FactorDataUnavailableError,
     MarketDataUnavailableError,
@@ -63,7 +65,9 @@ def evaluate_signals(
     db: Session = Depends(get_db),
     market_provider: MarketDataProvider = Depends(get_market_data_provider),
     factor_provider: FactorDataProvider = Depends(get_factor_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
+    require_portfolio_owner(db, portfolio_id, user)
     try:
         result = _service(db, market_provider, factor_provider).evaluate(
             portfolio_id, request.as_of_date, evaluation_id=request.evaluation_id
@@ -79,7 +83,9 @@ def get_signals(
     db: Session = Depends(get_db),
     market_provider: MarketDataProvider = Depends(get_market_data_provider),
     factor_provider: FactorDataProvider = Depends(get_factor_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
+    require_evaluation_owner(db, evaluation_id, user)
     try:
         return SignalEvaluationResponse.model_validate(
             _service(db, market_provider, factor_provider).get_evaluation(evaluation_id)
@@ -94,7 +100,9 @@ def get_risk(
     db: Session = Depends(get_db),
     market_provider: MarketDataProvider = Depends(get_market_data_provider),
     factor_provider: FactorDataProvider = Depends(get_factor_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
+    require_evaluation_owner(db, evaluation_id, user)
     try:
         return _service(db, market_provider, factor_provider).get_risk(evaluation_id)
     except Exception as exc:
@@ -110,7 +118,9 @@ def get_explainability(
     db: Session = Depends(get_db),
     market_provider: MarketDataProvider = Depends(get_market_data_provider),
     factor_provider: FactorDataProvider = Depends(get_factor_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
+    require_evaluation_owner(db, evaluation_id, user)
     try:
         items = _service(db, market_provider, factor_provider).get_explainability(evaluation_id)
         return ExplainabilityResponse(evaluation_id=evaluation_id, items=items)

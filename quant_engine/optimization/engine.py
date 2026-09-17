@@ -1,5 +1,5 @@
 import logging
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -98,7 +98,7 @@ class PortfolioOptimizer:
         prob = cp.Problem(objective, cvx_constraints)
         
         try:
-            prob.solve(solver=cp.ECOS)
+            prob.solve(solver=cp.CLARABEL)
         except Exception as e:
             logger.error(f"CVXPY solver exception: {e}")
             return self._fallback_equal_weight(inputs)

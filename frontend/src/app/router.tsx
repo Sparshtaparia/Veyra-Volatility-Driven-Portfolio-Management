@@ -16,6 +16,7 @@ import { HomePage } from "@/pages/home-page"
 import { OnboardingPage } from "@/pages/onboarding-page"
 import { PortfolioPage } from "@/pages/portfolio-page"
 import { RebalanceReviewPage } from "@/pages/rebalance-review-page"
+import { ResetPasswordPage } from "@/pages/reset-password-page"
 import { SettingsPage } from "@/pages/settings-page"
 import { SignInPage } from "@/pages/sign-in-page"
 import { SignUpPage } from "@/pages/sign-up-page"
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
   { path: "/sign-up", element: <SignUpPage /> },
   { path: "/sign-in", element: <SignInPage /> },
   { path: "/forgot-password", element: <ForgotPasswordPage /> },
+  { path: "/reset-password", element: <ResetPasswordPage /> },
   { path: "/onboarding", element: <OnboardingPage /> },
   {
     path: "/app",

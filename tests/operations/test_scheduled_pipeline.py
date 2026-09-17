@@ -45,6 +45,7 @@ def test_scheduled_full_pipeline_is_end_to_end_and_idempotent(
             for ticker in ("AAA", "BBB", "CCC")
         ],
         as_of_date,
+        "scheduled-test-user",
     )
     settings = Settings(database_url="sqlite:///:memory:", app_env="test")
 
@@ -99,6 +100,7 @@ def test_duplicate_running_claim_is_prevented(db_session: Session) -> None:
         "USD",
         [UploadedHolding(ticker="AAA", quantity=1.0, average_price=100.0)],
         as_of_date,
+        "scheduled-test-user",
     )
     repository = ScheduledRunRepository(db_session)
 
@@ -137,6 +139,7 @@ def test_failed_scheduled_run_rolls_back_and_records_failure(
         "USD",
         [UploadedHolding(ticker="AAA", quantity=1.0, average_price=100.0)],
         as_of_date,
+        "scheduled-test-user",
     )
     pipeline = ScheduledEvaluationPipeline(
         db_session,

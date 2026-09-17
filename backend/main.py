@@ -12,7 +12,15 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from backend.api import market_data, portfolio_control, portfolios, signals, system, volatility, rebalance
+from backend.api import (
+    market_data,
+    portfolio_control,
+    portfolios,
+    rebalance,
+    signals,
+    system,
+    volatility,
+)
 from backend.dependencies.db import get_db
 from backend.exceptions import (
     EvaluationNotFoundError,
@@ -21,7 +29,7 @@ from backend.exceptions import (
     PortfolioNotFoundError,
 )
 from backend.middleware.logging import LoggingMiddleware
-from backend.middleware.security import ApiSecurityMiddleware
+from backend.middleware.security import SecurityHeadersMiddleware
 from backend.operations.health import database_readiness
 from backend.operations.logging import configure_logging
 from backend.operations.scheduler import scheduler_service
@@ -52,25 +60,15 @@ app = FastAPI(
 
 # Middleware
 app.add_middleware(LoggingMiddleware)
-app.add_middleware(
-    ApiSecurityMiddleware,
-    api_prefix=settings.api_prefix,
-    # Supabase-authenticated routes validate Bearer JWTs with require_auth.
-    # Keep API-key middleware for deliberately key-only service deployments,
-    # rather than requiring both credentials for the same browser request.
-    api_key=(
-        settings.api_key.get_secret_value()
-        if settings.api_key and not settings.supabase_jwks_url
-        else None
-    ),
-)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+    expose_headers=["X-Request-ID"],
 )
 # NOTE: Route-level JWT authentication is enforced via `require_auth` dependency
 # in each protected API router. Health endpoints remain public.
@@ -96,6 +94,7 @@ def liveness_check():
     return {"status": "live"}
 
 
+@app.get("/ready", tags=["health"])
 @app.get("/health/ready", tags=["health"])
 def readiness_check(db: Session = Depends(get_db)):
     try:

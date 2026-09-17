@@ -54,6 +54,7 @@ class PortfolioUploadService:
         currency: str,
         holdings: list[UploadedHolding],
         as_of_date: date,
+        user_id: str,
     ):
         if not holdings:
             raise ValueError("portfolio upload must contain at least one holding")
@@ -69,7 +70,7 @@ class PortfolioUploadService:
             if not eligible:
                 raise ValueError(f"No current price available for {holding.ticker}")
             prices[holding.ticker] = eligible[-1].close
-        portfolio = self.portfolios.create_portfolio(name, currency)
+        portfolio = self.portfolios.create_portfolio(name, currency, user_id=user_id)
         for holding in holdings:
             self.portfolios.add_holding(
                 portfolio.id,
@@ -77,5 +78,6 @@ class PortfolioUploadService:
                 holding.quantity,
                 holding.average_price,
                 prices[holding.ticker],
+                user_id=user_id,
             )
-        return self.portfolios.get_portfolio(portfolio.id)
+        return self.portfolios.get_portfolio(portfolio.id, user_id=user_id)

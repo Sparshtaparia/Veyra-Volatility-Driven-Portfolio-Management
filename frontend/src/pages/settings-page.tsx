@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Check } from "lucide-react"
-import { useAuth } from "@/auth/auth-context"
+import { useAuth } from "@/auth/auth-model"
 import { usePortfolio } from "@/hooks/use-portfolio"
 import { getSavedPortfolioId } from "@/hooks/use-portfolio"
 import { EmptyState, Field, Notice, Panel, PanelHeader, PrimaryButton, SelectInput, TextInput } from "@/components/ui/primitives"

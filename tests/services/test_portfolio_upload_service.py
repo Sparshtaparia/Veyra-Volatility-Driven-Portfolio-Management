@@ -50,7 +50,9 @@ def test_parse_and_create_uploaded_portfolio(db_session: Session, extension: str
     service = PortfolioUploadService(db_session, provider())
 
     holdings = service.parse(content, f"holdings.{extension}")
-    portfolio = service.create_portfolio("Uploaded", "USD", holdings, date(2026, 1, 2))
+    portfolio = service.create_portfolio(
+        "Uploaded", "USD", holdings, date(2026, 1, 2), "test-user"
+    )
     persisted = service.portfolios.repo.get_holdings(portfolio.id)
 
     assert [item.ticker for item in persisted] == ["AAA", "BBB"]
@@ -68,6 +70,8 @@ def test_manual_upload_validates_every_price_before_creating_portfolio(
     ]
 
     with pytest.raises(ValueError, match="MISSING"):
-        service.create_portfolio("Invalid", "USD", holdings, date(2026, 1, 2))
+        service.create_portfolio(
+            "Invalid", "USD", holdings, date(2026, 1, 2), "test-user"
+        )
 
     assert service.portfolios.repo.list_portfolios() == []

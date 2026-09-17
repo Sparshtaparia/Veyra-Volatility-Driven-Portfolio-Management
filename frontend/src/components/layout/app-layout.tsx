@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Activity, BellRing, BriefcaseBusiness, ChartLine, Gauge, House, LogOut, Menu, Settings, X } from "lucide-react"
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
-import { useAuth } from "@/auth/auth-context"
+import { useAuth } from "@/auth/auth-model"
 import { cn } from "cn"
 
 const navItems = [

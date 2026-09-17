@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react"
 
-export function useScrollReveal(options = { threshold: 0.1, triggerOnce: true }) {
+type ScrollRevealOptions = { threshold?: number; triggerOnce?: boolean }
+
+export function useScrollReveal({
+  threshold = 0.1,
+  triggerOnce = true,
+}: ScrollRevealOptions = {}) {
   const ref = useRef<HTMLElement>(null)
   const [inView, setInView] = useState(false)
 
@@ -11,19 +16,19 @@ export function useScrollReveal(options = { threshold: 0.1, triggerOnce: true })
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setInView(true)
-        if (options.triggerOnce) {
+        if (triggerOnce) {
           observer.unobserve(el)
         }
-      } else if (!options.triggerOnce) {
+      } else if (!triggerOnce) {
         setInView(false)
       }
-    }, options)
+    }, { threshold })
 
     observer.observe(el)
     return () => {
       if (el) observer.unobserve(el)
     }
-  }, [options.threshold, options.triggerOnce])
+  }, [threshold, triggerOnce])
 
-  return { ref, inView }
+  return [ref, inView] as const
 }

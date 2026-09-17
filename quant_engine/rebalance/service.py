@@ -1,8 +1,8 @@
-from typing import Dict, Sequence
 from uuid import UUID
 
 from quant_engine.optimization.models import AllocationResult
 from quant_engine.rebalance.models import RebalanceAction, RebalanceOrder, RebalancePlan
+
 
 class RebalancePlanner:
     """
@@ -21,7 +21,7 @@ class RebalancePlanner:
         evaluation_id: UUID,
         portfolio_id: str,
         allocation: AllocationResult,
-        current_prices: Dict[str, float],
+        current_prices: dict[str, float],
         portfolio_value: float
     ) -> RebalancePlan:
         

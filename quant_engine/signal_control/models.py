@@ -1,5 +1,6 @@
 """Volatility-conditioned signal attenuation contracts."""
 from pydantic import BaseModel, ConfigDict, Field
+
 from quant_engine.signals.models import BaseSignal, SignalDirection
 from quant_engine.volatility.models import MarketRegime
 

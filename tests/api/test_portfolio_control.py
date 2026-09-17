@@ -115,6 +115,7 @@ class StubPortfolioControlService:
 
 def test_control_and_feedback_api_contracts(client: TestClient, monkeypatch) -> None:
     monkeypatch.setattr(api, "PortfolioControlService", StubPortfolioControlService)
+    monkeypatch.setattr(api, "require_portfolio_owner", lambda *_args: None)
     optimized = client.post(
         "/api/v1/portfolios/port-test/optimize",
         json={

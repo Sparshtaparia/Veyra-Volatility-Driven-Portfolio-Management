@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi.testclient import TestClient
 
 from backend.api import signals as signals_api
+from backend.api import volatility as volatility_api
 from backend.dependencies.factor_data import get_factor_data_provider
 from backend.main import app
 from backend.services.signal_evaluation_service import SignalEvaluationDTO
@@ -80,6 +81,8 @@ class StubService:
 
 def test_signal_endpoints(client: TestClient, monkeypatch) -> None:
     monkeypatch.setattr(signals_api, "_service", lambda *args: StubService())
+    monkeypatch.setattr(signals_api, "require_evaluation_owner", lambda *_args: None)
+    monkeypatch.setattr(volatility_api, "require_portfolio_owner", lambda *_args: None)
     app.dependency_overrides[get_factor_data_provider] = lambda: object()
 
     evaluated = client.post(

@@ -1,8 +1,8 @@
 """
 Simple benchmarks for backtesting validation.
 """
+from collections.abc import Sequence
 from datetime import date
-from typing import Sequence
 
 import numpy as np
 import pandas as pd

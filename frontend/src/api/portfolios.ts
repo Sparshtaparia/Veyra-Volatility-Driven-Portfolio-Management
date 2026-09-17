@@ -14,17 +14,25 @@ export type FeedbackData = {
   updated_threshold: number
   timestamp: string
 }
-export type PaperOrder = { ticker: string; side: "BUY" | "SELL"; quantity: number; execution_price: number; transaction_cost: number; slippage_cost: number; status: string }
-export type PaperExecution = { evaluation_id: string; portfolio_id: string; orders: PaperOrder[]; execution_time: string; total_cost: number; simulated_holdings: Array<{ ticker: string; quantity: number; market_value?: number; weight: number }> }
+export type PaperOrder = { ticker: string; side: "BUY" | "SELL"; quantity: number; reference_price: number; execution_price: number; gross_notional: number; transaction_cost: number; slippage_cost: number; net_cash_change: number; status: string }
+export type PaperExecution = { evaluation_id: string; portfolio_id: string; orders: PaperOrder[]; execution_time: string; total_cost: number; simulated_holdings: Array<{ ticker: string; quantity: number; market_value?: number; weight: number }>; total_slippage?: number; transaction_cost?: number; turnover?: number }
+type PortfolioHoldingsResponse = Pick<
+  Portfolio,
+  "portfolio_id" | "name" | "currency" | "total_value"
+> & { holdings: Holding[] }
 
 export const portfolioApi = {
   create: (input: CreatePortfolioInput) => apiFetch<Portfolio>("/portfolios", { method: "POST", body: JSON.stringify(input) }),
+  list: () => apiFetch<Portfolio[]>("/portfolios"),
   get: (portfolioId: string) => apiFetch<Portfolio>(`/portfolios/${portfolioId}`),
-  listHoldings: (portfolioId: string) => apiFetch<Holding[]>(`/portfolios/${portfolioId}/holdings`),
+  listHoldings: async (portfolioId: string) => {
+    const response = await apiFetch<PortfolioHoldingsResponse>(`/portfolios/${portfolioId}/holdings`)
+    return response.holdings
+  },
   addHolding: (portfolioId: string, input: AddHoldingInput) => apiFetch<Holding>(`/portfolios/${portfolioId}/holdings`, { method: "POST", body: JSON.stringify(input) }),
   evaluate: (portfolioId: string) => apiFetch<SignalDecision>(`/portfolios/${portfolioId}/signals/evaluate`, { method: "POST", body: JSON.stringify({ as_of_date: new Date().toISOString().slice(0, 10) }) }),
   getEvaluation: (portfolioId: string, evaluationId: string) => apiFetch<Evaluation>(`/portfolios/${portfolioId}/evaluations/${evaluationId}`),
   listEvaluations: (portfolioId: string) => apiFetch<Evaluation[]>(`/portfolios/${portfolioId}/evaluations`),
-  executeRebalance: (portfolioId: string) => apiFetch<PaperExecution>(`/portfolios/${portfolioId}/rebalance`, { method: "POST", body: JSON.stringify({ as_of_date: new Date().toISOString().slice(0, 10) }) }),
+  executeRebalance: (portfolioId: string, evaluationId: string, asOfDate: string) => apiFetch<PaperExecution>(`/portfolios/${portfolioId}/rebalance`, { method: "POST", body: JSON.stringify({ as_of_date: asOfDate, evaluation_id: evaluationId, approved: true }) }),
   getFeedback: (portfolioId: string) => apiFetch<FeedbackData | null>(`/portfolios/${portfolioId}/feedback`),
 }

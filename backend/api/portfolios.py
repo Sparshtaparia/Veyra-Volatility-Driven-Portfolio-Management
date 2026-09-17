@@ -45,6 +45,7 @@ def create_portfolio(
         portfolio_id=portfolio.id,
         name=portfolio.name,
         currency=portfolio.currency,
+        total_value=portfolio.total_value,
         created_at=portfolio.created_at,
     )
 
@@ -61,10 +62,30 @@ def list_portfolios(
             portfolio_id=p.id,
             name=p.name,
             currency=p.currency,
+            total_value=p.total_value,
             created_at=p.created_at,
         )
         for p in portfolios
     ]
+
+
+@router.get("/{portfolio_id}", response_model=PortfolioResponse)
+def get_portfolio(
+    portfolio_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    try:
+        portfolio = PortfolioService(db).get_portfolio(portfolio_id, user_id=user.user_id)
+    except PortfolioNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Portfolio not found") from exc
+    return PortfolioResponse(
+        portfolio_id=portfolio.id,
+        name=portfolio.name,
+        currency=portfolio.currency,
+        total_value=portfolio.total_value,
+        created_at=portfolio.created_at,
+    )
 
 
 @router.post(

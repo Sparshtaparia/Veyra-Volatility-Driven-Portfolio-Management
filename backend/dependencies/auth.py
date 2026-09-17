@@ -64,18 +64,21 @@ def _jwks_client() -> jwt.PyJWKClient | None:
 
 def _decode_token(token: str) -> dict:
     """Decode and verify a Supabase JWT, returning the claims dict."""
+    settings = get_settings()
+    if not settings.supabase_url:
+        raise RuntimeError("SUPABASE_URL is not configured")
     client = _jwks_client()
     if client is None:
         # Supabase not configured: fall through so callers can decide
         raise RuntimeError("SUPABASE_JWKS_URL is not configured")
     signing_key = client.get_signing_key_from_jwt(token)
-    audience = "authenticated"
     return jwt.decode(
         token,
         signing_key.key,
-        algorithms=["RS256"],
-        audience=audience,
-        options={"require": ["exp", "sub"]},
+        algorithms=["RS256", "ES256"],
+        audience=settings.supabase_jwt_audience,
+        issuer=f"{settings.supabase_url.rstrip('/')}/auth/v1",
+        options={"require": ["exp", "sub", "iss", "aud"]},
     )
 
 
@@ -88,7 +91,11 @@ def require_auth(
     Raises HTTP 401 if the token is missing, expired, or invalid.
     """
     settings = get_settings()
-    if settings.app_env == "development" and settings.auth_bypass_enabled:
+    if (
+        settings.app_env in {"development", "test"}
+        and settings.local_development
+        and settings.auth_bypass_enabled
+    ):
         return CurrentUser(
             user_id=str(settings.dev_auth_user_id),
             email="dev@veyra.local",
@@ -117,8 +124,8 @@ def require_auth(
             detail="Token has expired. Please sign in again.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except (jwt.InvalidTokenError, jwt.PyJWKClientError, Exception) as exc:
-        logger.warning("JWT verification failed: %s", exc)
+    except Exception:
+        logger.warning("JWT verification failed", exc_info=settings.app_env != "production")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token.",
@@ -126,9 +133,17 @@ def require_auth(
         )
 
     user_id: str = claims.get("sub", "")
+    if not user_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     email: str = claims.get("email", "")
-    meta: dict = claims.get("user_metadata", {})
-    raw_role = meta.get("role", "INVESTOR")
+    # Supabase users may edit user_metadata themselves. Authorization roles must
+    # come from app_metadata, which is controlled by a trusted server/admin.
+    app_metadata: dict = claims.get("app_metadata", {})
+    raw_role = app_metadata.get("role", "INVESTOR")
     role: Role = "ADMIN" if raw_role == "ADMIN" else "INVESTOR"
 
     return CurrentUser(user_id=user_id, email=email, role=role)

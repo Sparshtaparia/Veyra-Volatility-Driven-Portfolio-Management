@@ -1,13 +1,13 @@
 """State-coupled Phase 4 decision contracts."""
 from enum import Enum
-from pydantic import BaseModel, ConfigDict, Field
-from quant_engine.signal_control.models import RegulatedSignal
-from quant_engine.signals.models import SignalDirection
-from quant_engine.volatility.models import MarketRegime
 
+from pydantic import BaseModel, ConfigDict, Field
 
 from quant_engine.reliability.models import ReliabilityLevel
 from quant_engine.risk.models import RiskLevel
+from quant_engine.signal_control.models import RegulatedSignal
+from quant_engine.signals.models import SignalDirection
+from quant_engine.volatility.models import MarketRegime
 
 
 class DecisionState(str, Enum):

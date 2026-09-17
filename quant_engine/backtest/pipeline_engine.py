@@ -16,7 +16,7 @@ from sqlalchemy.pool import StaticPool
 from backend.services.portfolio_service import PortfolioService
 from backend.services.rebalance_service import RebalanceService
 from backend.services.signal_decision_evaluation_service import SignalEvaluationService
-from database.models import Base, PortfolioSnapshotModel, FeedbackUpdateModel
+from database.models import Base, FeedbackUpdateModel
 from quant_engine.backtest.models import (
     BacktestMetrics,
     PipelineBacktestConfig,
@@ -24,7 +24,6 @@ from quant_engine.backtest.models import (
     PipelineEvaluationRecord,
 )
 from quant_engine.data.provider import MarketDataProvider
-from quant_engine.data.returns import calculate_log_returns
 
 
 class PipelineBacktester:
@@ -64,7 +63,7 @@ class PipelineBacktester:
         # 1. Setup Portfolio
         portfolio_id = str(uuid4())
         portfolio_service = PortfolioService(db)
-        portfolio = portfolio_service.repo.create_portfolio(
+        portfolio_service.repo.create_portfolio(
             portfolio_id=portfolio_id,
             user_id="backtest_user",
             name="Backtest Portfolio",
@@ -97,8 +96,8 @@ class PipelineBacktester:
         signal_service = SignalEvaluationService(db, self.provider)
         rebalance_service = RebalanceService(db, self.provider)
         
-        # Override planner thresholds
-        rebalance_service.planner.rebalance_threshold = self.config.rebalance_threshold
+        # Apply the backtest's allocation threshold to the component that owns it.
+        signal_service.allocator.rebalance_threshold = self.config.rebalance_threshold
 
         # Generate evaluation dates (e.g. monthly, end of month)
         # Using business month end
@@ -140,9 +139,6 @@ class PipelineBacktester:
                 start_val = sum(qty * get_price(t, eval_date) for t, qty in current_holdings.items())
 
                 # Phase 1-6: Evaluate
-                # Ensure the optimizer uses only the config universe
-                signal_service.optimizer.universe = self.config.universe
-                
                 # We skip evaluation if history is insufficient, will raise ValueError/InsufficientCoverageError
                 eval_result = signal_service.evaluate(portfolio_id, eval_date)
                 
@@ -150,7 +146,10 @@ class PipelineBacktester:
                 turnover = 0.0
                 transaction_cost = 0.0
                 
-                if eval_result.allocation_result.decision != "HOLD":
+                allocation = eval_result.allocation_result
+                if allocation is None:
+                    raise ValueError("signal evaluation returned no allocation result")
+                if allocation.decision != "HOLD":
                     # Phase 7 & 8: Rebalance and Feedback
                     rebalance_result = rebalance_service.execute_paper_rebalance(
                         portfolio_id,
@@ -159,7 +158,7 @@ class PipelineBacktester:
                     )
                     
                     # Apply slippage & transaction costs (override default paper execution costs)
-                    turnover = eval_result.allocation_result.total_turnover
+                    turnover = allocation.total_turnover
                     transaction_cost = (
                         start_val 
                         * turnover 

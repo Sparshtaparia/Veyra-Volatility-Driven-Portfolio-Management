@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { ArrowLeft, MailCheck } from "lucide-react"
 import { Link } from "react-router-dom"
-import { useAuth } from "@/auth/auth-context"
+import { useAuth } from "@/auth/auth-model"
 import { AuthShell } from "@/components/auth/auth-shell"
 import { FormField } from "@/components/auth/form-field"
 

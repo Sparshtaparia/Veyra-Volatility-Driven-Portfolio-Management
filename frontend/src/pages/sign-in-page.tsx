@@ -1,7 +1,9 @@
 import { useState } from "react"
-import { ArrowRight, BarChart2, CheckCircle2, Eye, EyeOff, Lock, Mail, RefreshCw, ShieldCheck, TrendingUp } from "lucide-react"
+import { ArrowRight, BarChart2, Eye, EyeOff, Lock, Mail, RefreshCw, ShieldCheck, TrendingUp } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
-import { useAuth } from "@/auth/auth-context"
+import { portfolioApi } from "@/api/portfolios"
+import { useAuth } from "@/auth/auth-model"
+import { savePortfolioId } from "@/hooks/use-portfolio"
 
 // ─── Left panel ────────────────────────────────────────────────────────────
 
@@ -89,7 +91,17 @@ export function SignInPage() {
     setPending(true)
     try {
       const user = await signIn(email, password)
-      navigate(user.role === "ADMIN" ? "/admin" : "/app")
+      if (user.role === "ADMIN") {
+        navigate("/admin")
+        return
+      }
+      const portfolios = await portfolioApi.list()
+      if (portfolios.length === 0) {
+        navigate("/onboarding")
+      } else {
+        savePortfolioId(portfolios[0].portfolio_id)
+        navigate("/app")
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Unable to sign in.")
     } finally {

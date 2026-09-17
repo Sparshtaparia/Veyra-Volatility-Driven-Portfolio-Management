@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, CheckCircle2, LoaderCircle, RefreshCw } from "lucide-react"
+import { AlertTriangle, CheckCircle2, LoaderCircle, RefreshCw } from "lucide-react"
 import { useAdminHealth } from "@/hooks/use-admin-health"
 
 interface SystemHealthCardProps {

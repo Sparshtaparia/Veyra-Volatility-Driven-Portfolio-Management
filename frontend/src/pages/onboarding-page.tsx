@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { ArrowLeft, ArrowRight, Check, Plus, Trash2 } from "lucide-react"
 import { Link, Navigate, useNavigate } from "react-router-dom"
-import { useAuth } from "@/auth/auth-context"
+import { useAuth } from "@/auth/auth-model"
 import { useAddHolding, useCreatePortfolio } from "@/hooks/use-portfolio"
 import { Field, Notice, Panel, SelectInput, TextInput } from "@/components/ui/primitives"
 
@@ -16,7 +16,7 @@ const suggested = [
 ]
 
 export function OnboardingPage() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const navigate = useNavigate()
   const createPortfolio = useCreatePortfolio()
   const portfolioId = createPortfolio.data?.portfolio_id ?? null
@@ -29,7 +29,8 @@ export function OnboardingPage() {
   const [error, setError] = useState<string | undefined>()
   const [submitting, setSubmitting] = useState(false)
 
-  if (!user) return <Navigate to="/sign-up" replace />
+  if (loading) return null
+  if (!user) return <Navigate to="/sign-in" replace />
 
   async function createAndContinue() {
     setError(undefined)

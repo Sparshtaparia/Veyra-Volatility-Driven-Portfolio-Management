@@ -14,15 +14,17 @@ import {
   Minus,
 } from "lucide-react"
 import { Link } from "react-router-dom"
+import type { PaperOrder } from "@/api/portfolios"
+import { writeLatestEvaluation, writeLatestExecution } from "@/lib/evaluation-store"
 import { InvestorShell } from "@/components/layout/investor-shell"
 import {
   getSavedPortfolioId,
   useEvaluatePortfolio,
   useExecuteRebalance,
+  useFeedback,
   useHoldings,
   usePortfolio,
 } from "@/hooks/use-portfolio"
-import { SkeletonCard, SkeletonStatCard } from "@/components/common/skeleton"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -78,7 +80,7 @@ function AllocationRow({ ticker, current, target, delta, colour }: {
 
 // ─── Order card ───────────────────────────────────────────────────────────
 
-function OrderCard({ order, i }: { order: any; i: number }) {
+function OrderCard({ order, i }: { order: PaperOrder; i: number }) {
   const isBuy = order.side === "BUY"
   return (
     <div className={`flex items-center justify-between rounded-xl border px-4 py-3.5 animate-fade-up ${isBuy ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}`}
@@ -140,6 +142,7 @@ export function RebalanceReviewPage() {
   const holdings    = useHoldings(portfolioId)
   const evaluate    = useEvaluatePortfolio(portfolioId)
   const rebalance   = useExecuteRebalance(portfolioId)
+  const feedback    = useFeedback(portfolioId)
   const [phase, setPhase] = useState<Phase>("idle")
 
   const allocation = evaluate.data?.allocation_result
@@ -195,7 +198,10 @@ export function RebalanceReviewPage() {
                   and determine whether a rebalance is needed.
                 </p>
                 <button
-                  onClick={() => evaluate.mutate(undefined, { onSuccess: () => setPhase("evaluated") })}
+                  onClick={() => evaluate.mutate(undefined, { onSuccess: (result) => {
+                    writeLatestEvaluation(portfolioId, result)
+                    setPhase("evaluated")
+                  } })}
                   disabled={evaluate.isPending}
                   className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition"
                 >
@@ -226,13 +232,19 @@ export function RebalanceReviewPage() {
                     </div>
                     {!isHold && (
                       <button
-                        onClick={() => rebalance.mutate(undefined, { onSuccess: () => setPhase("executed") })}
+                        onClick={() => evaluate.data && rebalance.mutate(
+                          { evaluationId: evaluate.data.evaluation_id, asOfDate: evaluate.data.as_of_date },
+                          { onSuccess: (result) => {
+                            writeLatestExecution(portfolioId, result)
+                            setPhase("executed")
+                          } },
+                        )}
                         disabled={rebalance.isPending}
                         className="shrink-0 inline-flex h-10 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition"
                       >
                         {rebalance.isPending
                           ? <><LoaderCircle className="size-4 animate-spin" /> Simulating…</>
-                          : <><RefreshCw className="size-4" /> Simulate Rebalance</>}
+                          : <><RefreshCw className="size-4" /> Approve &amp; Simulate</>}
                       </button>
                     )}
                   </div>
@@ -320,6 +332,12 @@ export function RebalanceReviewPage() {
                   </div>
                   <WhySection decision={evaluate.data?.allocation_result?.decision} />
                 </div>
+
+                {feedback.data && (
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm text-blue-900">
+                    Feedback persisted: adaptive threshold updated from {feedback.data.previous_threshold.toFixed(4)} to {feedback.data.updated_threshold.toFixed(4)} for the next evaluation.
+                  </div>
+                )}
 
                 <div className="flex justify-center gap-3">
                   <button onClick={() => setPhase("idle")} className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">

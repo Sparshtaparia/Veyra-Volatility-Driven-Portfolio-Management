@@ -1,8 +1,12 @@
 from datetime import date
+
 import pytest
+
 from quant_engine.control.models import DecisionState
 from quant_engine.control.service import StateCoupledControl
 from quant_engine.features.models import FeatureSnapshot
+from quant_engine.reliability.models import ReliabilityState
+from quant_engine.risk.models import RiskState
 from quant_engine.signal_control.service import SignalRegulator
 from quant_engine.signals.models import SignalDirection
 from quant_engine.signals.service import SignalInputError, SignalService
@@ -25,8 +29,10 @@ def test_signal_is_interpretable_and_deterministic():
 
 
 def test_signal_rejects_incomplete_or_invalid_features():
-    with pytest.raises(SignalInputError): SignalService().generate(feature(rsi=None))
-    with pytest.raises(SignalInputError): SignalService().generate(feature(atr=0))
+    with pytest.raises(SignalInputError):
+        SignalService().generate(feature(rsi=None))
+    with pytest.raises(SignalInputError):
+        SignalService().generate(feature(atr=0))
 
 
 def test_attenuation_is_bounded_and_high_stress_reduces_signal():
@@ -38,10 +44,6 @@ def test_attenuation_is_bounded_and_high_stress_reduces_signal():
     assert 0 < stressed.attenuation_factor <= 1
     assert abs(stressed.regulated_signal) < abs(normal.regulated_signal)
     assert stressed.direction is base.direction
-
-
-from quant_engine.reliability.models import ReliabilityState
-from quant_engine.risk.models import RiskState
 
 def test_control_operator_responds_to_available_regime_state():
     base = SignalService().generate(feature(rsi=85, macd_histogram=2))

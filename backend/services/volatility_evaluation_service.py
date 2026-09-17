@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from copy import copy
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pandas as pd
@@ -18,7 +20,12 @@ from backend.exceptions import (
     VolatilityPersistenceError,
 )
 from backend.services.portfolio_service import PortfolioService
-from database.models import EvaluationModel, RegimeStateModel, VolatilityStateModel
+from database.models import (
+    EvaluationModel,
+    FeedbackUpdateModel,
+    RegimeStateModel,
+    VolatilityStateModel,
+)
 from database.repositories.evaluation_repo import EvaluationRepository
 from database.repositories.regime_repo import RegimeRepository
 from database.repositories.volatility_repo import VolatilityRepository
@@ -28,6 +35,7 @@ from quant_engine.domain import EvaluationDecision, EvaluationStatus, Evaluation
 from quant_engine.regimes.exceptions import InsufficientCoverageError
 from quant_engine.regimes.models import StressObservation
 from quant_engine.regimes.service import RegimeService
+from quant_engine.regimes.threshold import FixedThresholdStrategy, RollingQuantileThreshold
 from quant_engine.volatility.models import GARCHFitStatus, MarketRegime
 from quant_engine.volatility.service import VolatilityService
 
@@ -130,7 +138,14 @@ class VolatilityEvaluationService:
                 )
                 for row in historical_rows
             ]
-            state = self.regime_service.evaluate(
+            regime_service = self._regime_service_for_evaluation(portfolio_id, as_of_date)
+            history = self._bootstrap_stress_history(
+                returns_by_ticker,
+                as_of_date,
+                history,
+                regime_service,
+            )
+            state = regime_service.evaluate(
                 volatility_result.market_stress_snapshot,
                 history,
             )
@@ -230,6 +245,101 @@ class VolatilityEvaluationService:
                 ) from exc
             returns_by_ticker[ticker] = calculate_log_returns(bars)
         return returns_by_ticker
+
+    def _regime_service_for_evaluation(
+        self,
+        portfolio_id: str,
+        as_of_date: date,
+    ) -> RegimeService:
+        """Apply the most recent completed feedback cycle to the next evaluation.
+
+        Phase 8 persists an explicit adaptive-threshold update.  The existing
+        fixed-threshold compatibility strategy is the intended bridge back into
+        Phase 3; limiting the query to earlier dates preserves the timing
+        contract and prevents same-day/future feedback from leaking backward.
+        """
+
+        feedback = (
+            self.db.query(FeedbackUpdateModel)
+            .filter(
+                FeedbackUpdateModel.portfolio_id == portfolio_id,
+                FeedbackUpdateModel.observation_date < as_of_date,
+            )
+            .order_by(
+                FeedbackUpdateModel.observation_date.desc(),
+                FeedbackUpdateModel.id.desc(),
+            )
+            .first()
+        )
+        if feedback is None:
+            return self.regime_service
+        threshold = float(
+            cast(Any, feedback.updated_state.get("adaptive_threshold", 0.0))
+        )
+        if threshold <= 0.0:
+            return self.regime_service
+        adapted_service = copy(self.regime_service)
+        adapted_service.threshold_strategy = FixedThresholdStrategy(threshold)
+        return adapted_service
+
+    def _bootstrap_stress_history(
+        self,
+        returns_by_ticker: dict[str, pd.Series],
+        as_of_date: date,
+        persisted_history: list[StressObservation],
+        regime_service: RegimeService,
+    ) -> list[StressObservation]:
+        """Build a lookahead-safe initial stress window from existing returns.
+
+        Rolling thresholds need several stress observations before a newly
+        created portfolio has persisted history.  We derive only the missing
+        observations by running the unchanged volatility engine on successively
+        truncated historical returns.  The synthetic bootstrap observations
+        are not persisted as evaluations and never include data after their
+        own timestamp.
+        """
+
+        strategy = getattr(regime_service, "threshold_strategy", None)
+        if not isinstance(strategy, RollingQuantileThreshold):
+            return persisted_history
+
+        prior = [item for item in persisted_history if item.timestamp < as_of_date]
+        missing = max(strategy.minimum_history - 1 - len(prior), 0)
+        if missing == 0:
+            return persisted_history
+
+        existing_dates = {item.timestamp for item in prior}
+        candidate_dates = sorted(
+            {
+                timestamp.date()
+                for series in returns_by_ticker.values()
+                for timestamp in series.dropna().index
+                if timestamp.date() < as_of_date and timestamp.date() not in existing_dates
+            },
+            reverse=True,
+        )
+        bootstrapped: list[StressObservation] = []
+        for candidate in candidate_dates:
+            truncated = {
+                ticker: series.loc[series.index.date <= candidate]
+                for ticker, series in returns_by_ticker.items()
+            }
+            try:
+                snapshot = self.volatility_service.evaluate(
+                    truncated,
+                    as_of_date=candidate,
+                ).market_stress_snapshot
+            except Exception:
+                # Earlier dates may not yet contain the engine's minimum
+                # observation count or enough eligible assets. Keep walking
+                # backward until a complete, valid stress window is available.
+                continue
+            bootstrapped.append(snapshot.to_observation())
+            if len(bootstrapped) == missing:
+                break
+
+        combined = prior + bootstrapped
+        return sorted(combined, key=lambda item: item.timestamp)
 
     def _load_result(self, evaluation_id: UUID) -> VolatilityEvaluationDTO:
         evaluation = self.evaluation_repo.get_evaluation(evaluation_id)

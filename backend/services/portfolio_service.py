@@ -37,10 +37,9 @@ class PortfolioService:
         requesting user.  When user_id is None (e.g. internal/admin calls),
         ownership is not enforced.
         """
-        if user_id is not None and portfolio.user_id is not None:
-            if portfolio.user_id != user_id:
-                # Surface as 404 to avoid leaking existence to unauthorized users.
-                raise PortfolioNotFoundError(portfolio.id)
+        if user_id is not None and portfolio.user_id != user_id:
+            # Surface as 404 to avoid leaking existence to unauthorized users.
+            raise PortfolioNotFoundError(portfolio.id)
 
     def add_holding(
         self,
@@ -96,7 +95,9 @@ class PortfolioService:
                 h.weight = 0.0
             self.repo.update_holding(h)
 
-    def to_domain(self, portfolio_id: str, as_of_date: date, user_id: str | None = None) -> Portfolio:
+    def to_domain(
+        self, portfolio_id: str, as_of_date: date, user_id: str | None = None
+    ) -> Portfolio:
         portfolio = self.repo.get_portfolio(portfolio_id)
         if not portfolio:
             raise PortfolioNotFoundError(portfolio_id)

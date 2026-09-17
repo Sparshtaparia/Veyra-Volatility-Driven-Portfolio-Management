@@ -48,16 +48,15 @@ date filtering prevent a wider or newer request from satisfying a historical
 evaluation. The volatility service additionally drops every bar after the
 evaluation date, even if an upstream provider violates its date contract.
 
-The provider registry supports `yfinance` and the direct `yahoo_chart` adapter.
-The latter is the default fallback and can be replaced without changing any
-quant service.
+The provider registry uses `yfinance`, an optional independent Alpha Vantage
+secondary, and the direct `yahoo_chart` adapter as a tertiary fallback.
 
 ## Configuration and Supabase
 
 Production startup validation requires:
 
 - a PostgreSQL SQLAlchemy `DATABASE_URL`;
-- a `VEYRA_API_KEY` of at least 32 characters;
+- Supabase URL and JWKS URL for verified Bearer authentication;
 - explicit CORS origins and trusted hosts;
 - a Fama-French data path when scheduled full evaluations are enabled.
 
@@ -74,16 +73,16 @@ alembic upgrade head
 uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
-Readiness requires both a successful `SELECT 1` and Alembic revision
-`0004_phase6_operations`.
+Readiness requires both a successful `SELECT 1` and the current checked-in
+Alembic head.
 
 ## Security and observability
 
-All `/api/v1/*` routes require `X-API-Key` when `VEYRA_API_KEY` is configured.
-Health endpoints remain unauthenticated for orchestrators. Trusted-host, CORS,
-constant-time key comparison, request IDs, no-store, anti-sniffing, frame, and
-referrer headers provide baseline API hardening. Production OpenAPI/ReDoc pages
-are disabled.
+User routes require a verified Supabase Bearer token and enforce portfolio
+ownership from its `sub` claim. Admin operational and backtest routes additionally
+require the ADMIN role. Health endpoints remain unauthenticated for orchestrators.
+Trusted-host, CORS, request IDs, no-store, anti-sniffing, frame, and referrer
+headers provide baseline API hardening. Production OpenAPI/ReDoc pages are disabled.
 
 Logs are JSON by default and include run/evaluation/portfolio IDs, provider,
 evaluation date, status, duration, stage timings, request ID, and failures.
@@ -96,6 +95,7 @@ Operational endpoints:
 - `GET /health` — backward-compatible liveness alias
 - `GET /health/live` — process liveness
 - `GET /health/ready` — database and migration readiness
+- `GET /ready` — deployment-platform readiness alias
 - `GET /api/v1/system/status` — scheduler, provider/cache, run, and timing state
 - `GET /api/v1/portfolios/{portfolio_id}/evaluations` — persisted history
 
@@ -116,9 +116,8 @@ dedicated scheduler process provides cleaner ownership at larger scale.
   export it to a shared metrics backend.
 - APScheduler uses an in-memory schedule. The database ledger protects runs,
   but the cron definitions themselves are supplied through environment config.
-- Both built-in adapters currently use Yahoo as the upstream source. True vendor
-  diversification requires an additional licensed market-data adapter.
+- Alpha Vantage requires its own API key and is skipped when it is not configured.
 - Threads enforce caller-visible timeouts but cannot forcibly terminate a
   blocking third-party function already executing in Python.
-- API-key authentication is a deployment baseline, not per-user RBAC or OAuth.
+- There is no distributed API rate limiter; configure limits at the deployment edge.
 - There is no live brokerage or automatic external order execution.

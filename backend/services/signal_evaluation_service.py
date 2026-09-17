@@ -13,6 +13,12 @@ from sqlalchemy.orm import Session
 
 from backend.exceptions import SignalEvaluationNotFoundError, SignalPersistenceError
 from backend.services.portfolio_service import PortfolioService
+
+# Backward-compatible export for the newer decision/optimization flow, which
+# now lives in its own module instead of replacing this persisted Phase 4 API.
+from backend.services.signal_decision_evaluation_service import (  # noqa: F401
+    SignalDecisionEvaluationDTO,
+)
 from backend.services.volatility_evaluation_service import (
     VolatilityEvaluationDTO,
     VolatilityEvaluationService,
@@ -37,10 +43,6 @@ from quant_engine.risk.engine import RiskStateEngine
 from quant_engine.risk.models import RiskState
 from quant_engine.signals.models import ControlledSignal, ExplainabilityPayload
 from quant_engine.signals.operator import StateCoupledOperator
-
-# Backward-compatible export for the newer decision/optimization flow, which
-# now lives in its own module instead of replacing this persisted Phase 4 API.
-from backend.services.signal_decision_evaluation_service import SignalDecisionEvaluationDTO
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,7 @@ import { Plus } from "lucide-react"
 import { useAddHolding } from "@/hooks/use-portfolio"
 import { Field, Notice, TextInput } from "@/components/ui/primitives"
 
-import { useToast } from "@/components/common/toast"
+import { useToast } from "@/components/common/toast-context"
 
 export function AddHoldingForm({ portfolioId, onAdded }: { portfolioId: string; onAdded?: () => void }) {
   const [ticker, setTicker] = useState("")

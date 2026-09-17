@@ -129,6 +129,15 @@ class VolatilityEstimate(VolatilityModel):
 class MarketVolatilityState(VolatilityModel):
     """Cross-sectional volatility state and its threshold-derived regime."""
 
+    # ``model_fit_count`` is a public persisted/API field. Explicitly permit
+    # that compatibility name only on this model rather than changing the
+    # global Pydantic namespace policy.
+    model_config = ConfigDict(
+        allow_inf_nan=False,
+        extra="forbid",
+        protected_namespaces=(),
+    )
+
     as_of_date: date = Field(validation_alias=AliasChoices("as_of_date", "timestamp"))
     total_asset_count: int = Field(
         gt=0,

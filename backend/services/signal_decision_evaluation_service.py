@@ -2,26 +2,28 @@
 from dataclasses import dataclass
 from datetime import date, timedelta
 from uuid import UUID
+
 from sqlalchemy.orm import Session
+
 from backend.services.portfolio_service import PortfolioService
 from backend.services.volatility_evaluation_service import VolatilityEvaluationService
+from database.models import EvaluationModel
 from quant_engine.control.models import ControlOutput
 from quant_engine.control.service import StateCoupledControl
 from quant_engine.data.provider import MarketDataProvider
+from quant_engine.domain import EvaluationDecision
 from quant_engine.features.service import FeatureService
-from quant_engine.signal_control.service import SignalRegulator
-from quant_engine.signals.service import SignalService
-
-from quant_engine.reliability.service import ReliabilityService
-from quant_engine.risk.service import CompositeRiskService
-
+from quant_engine.optimization.allocator import TargetAllocator
+from quant_engine.optimization.engine import PortfolioOptimizer
 from quant_engine.optimization.models import (
+    AllocationResult,
     AssetOptimizationInput,
     OptimizationConstraints,
-    AllocationResult
 )
-from quant_engine.optimization.engine import PortfolioOptimizer
-from quant_engine.optimization.allocator import TargetAllocator
+from quant_engine.reliability.service import ReliabilityService
+from quant_engine.risk.service import CompositeRiskService
+from quant_engine.signal_control.service import SignalRegulator
+from quant_engine.signals.service import SignalService
 
 
 @dataclass(frozen=True)
@@ -36,6 +38,7 @@ class SignalDecisionEvaluationDTO:
 
 class SignalEvaluationService:
     def __init__(self, db: Session, provider: MarketDataProvider, *, volatility_service: VolatilityEvaluationService | None = None) -> None:
+        self.db = db
         self.portfolio_service = PortfolioService(db)
         self.provider = provider
         self.volatility_service = volatility_service or VolatilityEvaluationService(db, provider)
@@ -89,6 +92,8 @@ class SignalEvaluationService:
             
             # Re-compute or retrieve reliability score for optimization
             asset = by_ticker.get(ticker)
+            if asset is None:
+                raise ValueError(f"No volatility state available for {ticker}")
             reliability_out = self.reliability.compute_reliability(ticker, asset.forecast_volatility)
             
             opt_inputs.append(
@@ -105,6 +110,15 @@ class SignalEvaluationService:
         constraints = OptimizationConstraints(min_weight=0.0, max_weight=0.4, turnover_limit=1.0)
         target_outputs = self.optimizer.optimize(opt_inputs, constraints)
         allocation_result = self.allocator.allocate(opt_inputs, target_outputs)
+
+        evaluation = self.db.get(EvaluationModel, volatility.evaluation_id)
+        if evaluation is not None:
+            evaluation.decision = (
+                EvaluationDecision.REBALANCE
+                if allocation_result.decision == "REBALANCE_REQUIRED"
+                else EvaluationDecision.HOLD
+            )
+            self.db.commit()
             
         return SignalDecisionEvaluationDTO(
             evaluation_id=volatility.evaluation_id, 

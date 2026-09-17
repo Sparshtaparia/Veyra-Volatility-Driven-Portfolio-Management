@@ -7,8 +7,10 @@ import pandas as pd
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from backend.dependencies.auth import CurrentUser, require_admin, require_auth
 from backend.dependencies.db import get_db
 from backend.dependencies.market_data import get_market_data_provider
+from backend.dependencies.ownership import require_evaluation_owner, require_portfolio_owner
 from backend.schemas.portfolio_control import (
     AblationItemResponse,
     AblationRunRequest,
@@ -52,11 +54,10 @@ def get_portfolio_holdings(
     portfolio_id: str,
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
     service = PortfolioUploadService(db, provider)
-    portfolio = service.portfolios.repo.get_portfolio(portfolio_id)
-    if portfolio is None:
-        raise HTTPException(status_code=404, detail="portfolio not found")
+    portfolio = service.portfolios.get_portfolio(portfolio_id, user_id=user.user_id)
     return _upload_response(service, portfolio)
 
 
@@ -68,12 +69,14 @@ async def upload_portfolio(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
     service = PortfolioUploadService(db, provider)
     try:
         holdings = service.parse(await file.read(), file.filename or "")
         return _upload_response(
-            service, service.create_portfolio(name, currency, holdings, as_of_date)
+            service,
+            service.create_portfolio(name, currency, holdings, as_of_date, user.user_id),
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -84,12 +87,13 @@ def create_manual_portfolio(
     request: ManualPortfolioRequest,
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
+    user: CurrentUser = Depends(require_auth),
 ):
     service = PortfolioUploadService(db, provider)
     try:
         holdings = [UploadedHolding.model_validate(item.model_dump()) for item in request.holdings]
         portfolio = service.create_portfolio(
-            request.name, request.currency, holdings, request.as_of_date
+            request.name, request.currency, holdings, request.as_of_date, user.user_id
         )
         return _upload_response(service, portfolio)
     except ValueError as exc:
@@ -105,7 +109,9 @@ def optimize_portfolio(
     portfolio_id: str,
     request: PortfolioControlRequest,
     db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
 ):
+    require_portfolio_owner(db, portfolio_id, user)
     try:
         result = PortfolioControlService(db).optimize_and_rebalance(
             portfolio_id,
@@ -126,7 +132,9 @@ def apply_feedback(
     portfolio_id: str,
     request: FeedbackRequest,
     db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
 ):
+    require_portfolio_owner(db, portfolio_id, user)
     try:
         return PortfolioControlService(db).apply_feedback(
             portfolio_id, request.evaluation_id, request.outcome
@@ -143,7 +151,11 @@ def _frames(request: BacktestRunRequest):
 
 
 @router.post("/backtests", response_model=BacktestRunResponse, status_code=201)
-def run_backtest(request: BacktestRunRequest, db: Session = Depends(get_db)):
+def run_backtest(
+    request: BacktestRunRequest,
+    db: Session = Depends(get_db),
+    _user: CurrentUser = Depends(require_admin),
+):
     try:
         returns, weights, benchmark = _frames(request)
         backtest_id, result = BacktestService(db).run(
@@ -159,7 +171,11 @@ def run_backtest(request: BacktestRunRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/backtests/ablation", response_model=AblationRunResponse, status_code=201)
-def run_ablation(request: AblationRunRequest, db: Session = Depends(get_db)):
+def run_ablation(
+    request: AblationRunRequest,
+    db: Session = Depends(get_db),
+    _user: CurrentUser = Depends(require_admin),
+):
     try:
         returns = pd.DataFrame(request.asset_returns, index=pd.to_datetime(request.return_dates))
         benchmark = pd.Series(request.benchmark_returns, index=pd.to_datetime(request.return_dates))
@@ -183,7 +199,12 @@ def run_ablation(request: AblationRunRequest, db: Session = Depends(get_db)):
 @router.get(
     "/evaluations/{evaluation_id}/portfolio-control", response_model=PortfolioControlResponse
 )
-def get_portfolio_control(evaluation_id: UUID, db: Session = Depends(get_db)):
+def get_portfolio_control(
+    evaluation_id: UUID,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    require_evaluation_owner(db, evaluation_id, user)
     repository = PortfolioControlRepository(db)
     event = repository.get_rebalance(evaluation_id)
     if event is None:
@@ -194,10 +215,15 @@ def get_portfolio_control(evaluation_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.get(
-    "/portfolios/{portfolio_id}/feedback",
+    "/portfolios/{portfolio_id}/feedback/history",
     response_model=list[FeedbackHistoryItem],
 )
-def get_feedback_history(portfolio_id: str, db: Session = Depends(get_db)):
+def get_feedback_history(
+    portfolio_id: str,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_auth),
+):
+    require_portfolio_owner(db, portfolio_id, user)
     return [
         FeedbackHistoryItem.model_validate(item)
         for item in PortfolioControlRepository(db).feedback_history(portfolio_id)
@@ -205,7 +231,11 @@ def get_feedback_history(portfolio_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/backtests/{backtest_id}", response_model=BacktestDetailResponse)
-def get_backtest(backtest_id: UUID, db: Session = Depends(get_db)):
+def get_backtest(
+    backtest_id: UUID,
+    db: Session = Depends(get_db),
+    _user: CurrentUser = Depends(require_admin),
+):
     repository = BacktestRepository(db)
     metadata = repository.get(backtest_id)
     metrics = repository.get_metrics(backtest_id)

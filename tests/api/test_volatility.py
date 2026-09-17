@@ -80,6 +80,8 @@ class StubService:
 
 def install_stub(monkeypatch: pytest.MonkeyPatch, service: StubService) -> None:
     monkeypatch.setattr(volatility_api, "_service", lambda db, provider: service)
+    monkeypatch.setattr(volatility_api, "require_portfolio_owner", lambda *_args: None)
+    monkeypatch.setattr(volatility_api, "require_evaluation_owner", lambda *_args: None)
 
 
 def test_evaluate_endpoint_success(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { InvestorShell } from "@/components/layout/investor-shell"
-import { getSavedPortfolioId, usePortfolio } from "@/hooks/use-portfolio"
+import { getSavedPortfolioId } from "@/hooks/use-portfolio"
 import { portfolioApi } from "@/api/portfolios"
 import type { Evaluation } from "@/api/portfolios"
 import { SkeletonTable } from "@/components/common/skeleton"
@@ -145,8 +145,6 @@ function EmptyState() {
 
 export function EvaluationHistoryPage() {
   const portfolioId = getSavedPortfolioId()
-  const portfolio = usePortfolio(portfolioId)
-
   const evals = useQuery({
     queryKey: ["evaluations", portfolioId],
     queryFn: () => portfolioApi.listEvaluations(portfolioId!),

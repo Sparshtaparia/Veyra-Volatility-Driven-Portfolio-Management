@@ -6,7 +6,7 @@ Market data provider abstractions.
 
 import json
 from abc import ABC, abstractmethod
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
@@ -28,6 +28,18 @@ class MarketDataProvider(ABC):
         Fetch historical OHLCV data for a single ticker.
         """
         pass
+
+    def get_latest_price(self, ticker: str, as_of_date: date) -> float:
+        """Return the latest historical close at or before ``as_of_date``."""
+        bars = self.get_history(
+            ticker,
+            as_of_date - timedelta(days=14),
+            as_of_date + timedelta(days=1),
+        )
+        eligible = [bar for bar in bars if bar.timestamp <= as_of_date]
+        if not eligible:
+            raise RuntimeError(f"No price available for {ticker} at {as_of_date}")
+        return eligible[-1].close
 
 
 class YFinanceProvider(MarketDataProvider):

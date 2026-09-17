@@ -1,31 +1,21 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { authErrorMessage } from "@/auth/auth-errors"
+import { AuthContext, type AuthContextValue, type CurrentUser } from "@/auth/auth-model"
 import { supabase } from "@/lib/supabase"
-
-export type Role = "INVESTOR" | "ADMIN"
-export type CurrentUser = { id: string; name: string; email: string; role: Role }
-
-type AuthContextValue = {
-  user: CurrentUser | null
-  loading: boolean
-  signIn: (email: string, password: string) => Promise<CurrentUser>
-  createInvestor: (name: string, email: string, password: string) => Promise<void>
-  resetPassword: (email: string) => Promise<void>
-  signOut: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
 
 function toCurrentUser(user: {
   id: string
   email?: string
   user_metadata?: Record<string, unknown>
+  app_metadata?: Record<string, unknown>
 }): CurrentUser {
   const metadata = user.user_metadata ?? {}
+  const appMetadata = user.app_metadata ?? {}
   return {
     id: user.id,
     email: user.email ?? "",
     name: String(metadata.full_name ?? metadata.name ?? user.email?.split("@")[0] ?? "Investor"),
-    role: metadata.role === "ADMIN" ? "ADMIN" : "INVESTOR",
+    role: appMetadata.role === "ADMIN" ? "ADMIN" : "INVESTOR",
   }
 }
 
@@ -42,9 +32,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .finally(() => setLoading(false))
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ? toCurrentUser(session.user) : null)
-      setLoading(false)
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (
+        event === "SIGNED_IN" ||
+        event === "SIGNED_OUT" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "USER_UPDATED" ||
+        event === "PASSWORD_RECOVERY"
+      ) {
+        setUser(session?.user ? toCurrentUser(session.user) : null)
+        setLoading(false)
+      }
     })
     return () => listener.subscription.unsubscribe()
   }, [])
@@ -55,32 +53,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       signIn: async (email, password) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw new Error(error.message)
+        if (error) throw new Error(authErrorMessage(error))
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
         if (sessionError || !sessionData.session || !data.user) {
-          throw new Error(sessionError?.message ?? "Supabase did not create a session.")
+          throw new Error(
+            sessionError ? authErrorMessage(sessionError) : "Unable to establish a secure session.",
+          )
         }
         const currentUser = toCurrentUser(data.user)
         setUser(currentUser)
         return currentUser
       },
       createInvestor: async (name, email, password) => {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: name, role: "INVESTOR" } },
+          options: { data: { full_name: name } },
         })
-        if (error) throw new Error(error.message)
+        if (error) throw new Error(authErrorMessage(error))
+        if (!data.session) return "confirmation_required"
+        if (data.user) setUser(toCurrentUser(data.user))
+        return "authenticated"
+      },
+      resendConfirmation: async (email) => {
+        const { error } = await supabase.auth.resend({ type: "signup", email })
+        if (error) throw new Error(authErrorMessage(error))
       },
       resetPassword: async (email) => {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/sign-in`,
+          redirectTo: `${window.location.origin}/reset-password`,
         })
-        if (error) throw new Error(error.message)
+        if (error) throw new Error(authErrorMessage(error))
+      },
+      updatePassword: async (password) => {
+        const { error } = await supabase.auth.updateUser({ password })
+        if (error) throw new Error(authErrorMessage(error))
       },
       signOut: async () => {
         const { error } = await supabase.auth.signOut()
-        if (error) throw new Error(error.message)
+        if (error) throw new Error(authErrorMessage(error))
         setUser(null)
       },
     }),
@@ -88,14 +99,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const value = useContext(AuthContext)
-  if (!value) throw new Error("useAuth must be used inside AuthProvider")
-  return value
-}
-
-export function useRole() {
-  return useAuth().user?.role ?? null
 }

@@ -1,7 +1,8 @@
 from enum import Enum
-from typing import List, Optional
 from uuid import UUID
+
 from pydantic import BaseModel, Field
+
 
 class RebalanceAction(str, Enum):
     BUY = "BUY"
@@ -23,7 +24,7 @@ class RebalanceOrder(BaseModel):
 class RebalancePlan(BaseModel):
     evaluation_id: UUID
     portfolio_id: str
-    orders: List[RebalanceOrder]
+    orders: list[RebalanceOrder]
     total_turnover: float = Field(ge=0.0)
     valid: bool
     decision: str  # HOLD or REBALANCE_REQUIRED

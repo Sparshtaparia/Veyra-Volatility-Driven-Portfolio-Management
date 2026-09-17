@@ -1,6 +1,7 @@
 """Contracts for X(t+1) = F(X(t), u(t), Y(t+1))."""
 
 from datetime import date
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -40,8 +41,6 @@ class FeedbackUpdate(FeedbackModel):
     controlled_signal: float
     outcome: FeedbackOutcome
     updated_state: SystemState
-
-from uuid import UUID
 
 class FeedbackCycle(BaseModel):
     evaluation_id: UUID

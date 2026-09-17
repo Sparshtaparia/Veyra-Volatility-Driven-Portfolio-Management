@@ -1,6 +1,7 @@
 import pytest
-from quant_engine.optimization.models import AssetOptimizationInput, OptimizationConstraints
+
 from quant_engine.optimization.engine import PortfolioOptimizer
+from quant_engine.optimization.models import AssetOptimizationInput, OptimizationConstraints
 
 pytestmark = pytest.mark.skip(reason="CVXPY/OSQP Access Violation on Windows")
 

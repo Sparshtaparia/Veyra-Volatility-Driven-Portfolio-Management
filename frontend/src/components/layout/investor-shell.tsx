@@ -11,8 +11,8 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react"
-import { NavLink, useLocation, useNavigate } from "react-router-dom"
-import { useAuth } from "@/auth/auth-context"
+import { NavLink, useLocation } from "react-router-dom"
+import { useAuth } from "@/auth/auth-model"
 
 const navigation = [
   { label: "Home",       icon: Home,              to: "/app",              end: true  },
@@ -47,7 +47,6 @@ function useContextualCard(path: string) {
 
 export function InvestorShell({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth()
-  const navigate = useNavigate()
   const { pathname } = useLocation()
   const card = useContextualCard(pathname)
   const initials = user ? getInitials(user.name, user.email) : "U"

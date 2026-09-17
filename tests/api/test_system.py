@@ -29,7 +29,9 @@ def test_evaluation_history_is_persisted_and_ordered(
     client: TestClient, db_session: Session
 ) -> None:
     portfolio_id = f"port-{uuid4().hex[:8]}"
-    PortfolioRepository(db_session).create_portfolio(portfolio_id, "History", "USD")
+    PortfolioRepository(db_session).create_portfolio(
+        portfolio_id, "History", "USD", user_id="test-user"
+    )
     repository = EvaluationRepository(db_session)
     for evaluation_date in (date(2026, 1, 1), date(2026, 2, 1)):
         repository.create_evaluation(

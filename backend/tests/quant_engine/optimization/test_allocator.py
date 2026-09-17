@@ -1,6 +1,8 @@
 import pytest
-from quant_engine.optimization.models import AssetOptimizationInput, OptimizationOutput
+
 from quant_engine.optimization.allocator import TargetAllocator
+from quant_engine.optimization.models import AssetOptimizationInput, OptimizationOutput
+
 
 def test_allocator_calculates_deltas_correctly():
     allocator = TargetAllocator(rebalance_threshold=0.05)

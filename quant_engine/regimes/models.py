@@ -33,6 +33,12 @@ class StressObservation(RegimeModel):
 class MarketStressSnapshot(RegimeModel):
     """Cross-sectional aggregation of per-asset volatility estimates."""
 
+    model_config = ConfigDict(
+        allow_inf_nan=False,
+        extra="forbid",
+        protected_namespaces=(),
+    )
+
     timestamp: date
     total_asset_count: int = Field(gt=0)
     eligible_asset_count: int = Field(gt=0)

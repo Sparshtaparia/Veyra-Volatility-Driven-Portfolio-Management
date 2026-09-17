@@ -1,10 +1,12 @@
-import pytest
 from uuid import uuid4
-from datetime import datetime
 
-from quant_engine.rebalance.models import RebalanceAction, RebalanceOrder, RebalancePlan
+import pytest
+from pydantic import ValidationError
+
 from execution.paper.executor import PaperExecutor
 from execution.paper.models import OrderStatus
+from quant_engine.rebalance.models import RebalanceAction, RebalanceOrder, RebalancePlan
+
 
 def test_paper_executor_buy_sell():
     executor = PaperExecutor(slippage_bps=10.0, transaction_cost_bps=5.0)
@@ -72,8 +74,6 @@ def test_paper_executor_buy_sell():
     
     msft_holding = next(h for h in result.simulated_holdings if h["ticker"] == "MSFT")
     assert msft_holding["quantity"] == 0.0
-
-from pydantic import ValidationError
 
 def test_paper_executor_rejects_invalid_quantity():
     with pytest.raises(ValidationError):

@@ -1,6 +1,6 @@
 import { Activity, ClipboardList, LayoutDashboard, LogOut, ServerCog, Users } from "lucide-react"
 import { NavLink } from "react-router-dom"
-import { useAuth } from "@/auth/auth-context"
+import { useAuth } from "@/auth/auth-model"
 
 const navigation = [
   { label: "Overview", icon: LayoutDashboard, to: "/admin", end: true },

@@ -2,6 +2,7 @@
 """Typed, deterministic Phase 4 base-signal contracts."""
 from datetime import date
 from enum import Enum
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from quant_engine.volatility.models import MarketRegime

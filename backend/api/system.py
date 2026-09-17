@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from backend.dependencies.auth import CurrentUser, require_admin
 from backend.dependencies.db import get_db
 from backend.dependencies.market_data import get_market_data_provider
 from backend.operations.health import database_readiness
@@ -20,6 +21,7 @@ router = APIRouter(tags=["system"])
 def system_status(
     db: Session = Depends(get_db),
     provider: ResilientMarketDataProvider = Depends(get_market_data_provider),
+    _user: CurrentUser = Depends(require_admin),
 ) -> SystemStatusResponse:
     repository = ScheduledRunRepository(db)
     recent = repository.recent()

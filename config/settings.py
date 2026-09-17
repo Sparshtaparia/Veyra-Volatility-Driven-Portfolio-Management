@@ -17,7 +17,7 @@ from functools import lru_cache
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -50,22 +50,13 @@ class Settings(BaseSettings):
     supabase_url: str | None = Field(default=None)
     """Supabase project URL. Example: https://PROJECT_REF.supabase.co"""
 
-    supabase_anon_key: SecretStr | None = Field(
-        default=None,
-        validation_alias=AliasChoices("SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY"),
-    )
-    """Supabase publishable (anon) key. Safe to use in server-side requests."""
-
-    supabase_service_role_key: SecretStr | None = Field(
-        default=None,
-        validation_alias=AliasChoices("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"),
-    )
-    """Supabase service-role (secret) key. NEVER expose to frontend."""
-
     supabase_jwks_url: str | None = Field(default=None)
     """Supabase JWKS endpoint for JWT verification.
     Example: https://PROJECT_REF.supabase.co/auth/v1/.well-known/jwks.json
     """
+
+    supabase_jwt_audience: str = "authenticated"
+    """Expected audience on Supabase access tokens."""
 
     # ------------------------------------------------------------------
     # Application
@@ -83,12 +74,9 @@ class Settings(BaseSettings):
     """Browser origins allowed to call the API."""
 
     trusted_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
-    api_key: SecretStr | None = Field(
-        default=None,
-        validation_alias=AliasChoices("VEYRA_API_KEY", "API_KEY"),
-    )
     structured_json_logs: bool = True
     auth_bypass_enabled: bool = False
+    local_development: bool = False
     dev_auth_user_id: UUID = UUID("00000000-0000-0000-0000-000000000001")
 
     market_data_provider: str = "yfinance"
@@ -203,25 +191,39 @@ class Settings(BaseSettings):
     def validate_production_configuration(self) -> "Settings":
         if self.market_data_max_backoff_seconds < self.market_data_backoff_seconds:
             raise ValueError("market-data maximum backoff must be at least the base backoff")
-        if self.app_env == "production":
-            if self.auth_bypass_enabled:
-                raise ValueError("AUTH_BYPASS_ENABLED cannot be enabled in production")
-            if not self.database_url.startswith(("postgresql://", "postgresql+psycopg2://")):
-                raise ValueError("production requires a PostgreSQL DATABASE_URL")
-            supabase_configured = any(
-                (self.supabase_url, self.supabase_jwks_url, self.supabase_service_role_key)
+        if self.auth_bypass_enabled and (
+            self.app_env not in {"development", "test"} or not self.local_development
+        ):
+            raise ValueError(
+                "AUTH_BYPASS_ENABLED requires APP_ENV=development/test "
+                "and LOCAL_DEVELOPMENT=true"
             )
-            if supabase_configured:
-                if not self.supabase_url or not self.supabase_jwks_url:
-                    raise ValueError("production requires SUPABASE_URL and SUPABASE_JWKS_URL")
-                if not self.supabase_service_role_key:
-                    raise ValueError("production requires SUPABASE_SERVICE_ROLE_KEY")
-            elif self.api_key is None or len(self.api_key.get_secret_value()) < 32:
+        if self.app_env == "production" and not self.database_url.startswith(
+            ("postgresql://", "postgresql+psycopg2://")
+        ):
+            raise ValueError("production requires a PostgreSQL DATABASE_URL")
+        if self.app_env in {"staging", "production"}:
+            if not self.supabase_url or not self.supabase_jwks_url:
                 raise ValueError(
-                    "production requires complete Supabase auth or a 32-character VEYRA_API_KEY"
+                    "staging/production requires SUPABASE_URL and SUPABASE_JWKS_URL"
                 )
             if "*" in self.cors_origins or "*" in self.trusted_hosts:
-                raise ValueError("production CORS origins and trusted hosts must be explicit")
+                raise ValueError(
+                    "staging/production CORS origins and trusted hosts must be explicit"
+                )
+            expected_jwks = (
+                f"{self.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+            )
+            if self.supabase_jwks_url.rstrip("/") != expected_jwks:
+                raise ValueError("SUPABASE_JWKS_URL must belong to SUPABASE_URL")
+        if self.app_env == "production":
+            local_markers = ("localhost", "127.0.0.1", "testserver")
+            if any(marker in origin for marker in local_markers for origin in self.cors_origins):
+                raise ValueError("production CORS_ORIGINS must contain deployed origins")
+            if any(marker in host for marker in local_markers for host in self.trusted_hosts):
+                raise ValueError("production TRUSTED_HOSTS must contain deployed hosts")
+            if "supabase" in self.database_url and "sslmode=require" not in self.database_url:
+                raise ValueError("Supabase DATABASE_URL must include sslmode=require")
             if self.scheduler_enabled and not self.fama_french_data_path:
                 raise ValueError("scheduled full evaluation requires FAMA_FRENCH_DATA_PATH")
         return self

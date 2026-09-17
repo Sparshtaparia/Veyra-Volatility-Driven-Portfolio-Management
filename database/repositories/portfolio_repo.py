@@ -32,6 +32,15 @@ class PortfolioRepository:
             select(PortfolioModel).where(PortfolioModel.id == portfolio_id)
         ).scalar_one_or_none()
 
+    def get_for_user(self, portfolio_id: str, user_id: str) -> PortfolioModel | None:
+        """Return a portfolio only when it belongs to the verified user."""
+        return self.db.execute(
+            select(PortfolioModel).where(
+                PortfolioModel.id == portfolio_id,
+                PortfolioModel.user_id == user_id,
+            )
+        ).scalar_one_or_none()
+
     def list_portfolios(self) -> list[PortfolioModel]:
         return list(self.db.execute(select(PortfolioModel)).scalars().all())
 

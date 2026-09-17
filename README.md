@@ -76,7 +76,7 @@ Existing portfolio → Add holdings → Evaluate → Display decision
 │   └── src/
 │       ├── api/              # Centralized API clients
 │       ├── app/              # Router
-│       ├── auth/             # Demo auth and role guards
+│       ├── auth/             # Supabase session and role guards
 │       ├── components/       # Shared UI and layouts
 │       ├── hooks/            # TanStack Query hooks
 │       └── pages/            # Public, investor, admin pages
@@ -93,7 +93,7 @@ Existing portfolio → Add holdings → Evaluate → Display decision
 ## Prerequisites
 
 - Node.js 20+ recommended
-- Python 3.10+
+- Python 3.11
 - PostgreSQL or a Supabase PostgreSQL project
 - Git
 
@@ -110,9 +110,12 @@ Configure at least:
 ```env
 DATABASE_URL=postgresql+psycopg2://USER:PASSWORD@HOST:PORT/DATABASE
 SUPABASE_URL=https://PROJECT_REF.supabase.co
-SUPABASE_ANON_KEY=your-supabase-anon-key
-FRONTEND_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+SUPABASE_JWKS_URL=https://PROJECT_REF.supabase.co/auth/v1/.well-known/jwks.json
+CORS_ORIGINS=["http://localhost:5173","http://127.0.0.1:5173"]
+TRUSTED_HOSTS=["localhost","127.0.0.1","testserver"]
 APP_ENV=development
+AUTH_BYPASS_ENABLED=false
+LOCAL_DEVELOPMENT=false
 LOG_LEVEL=INFO
 API_PREFIX=/api/v1
 DEFAULT_CURRENCY=INR
@@ -126,6 +129,8 @@ Copy-Item frontend\.env.example frontend\.env
 
 ```env
 VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
+VITE_SUPABASE_URL=https://PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=your-browser-safe-publishable-key
 ```
 
 Never commit environment files, database passwords, service-role keys, or private API credentials.
@@ -154,7 +159,7 @@ In a second terminal:
 
 ```powershell
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -182,16 +187,16 @@ npm run build
 | Shared | `/403` | Access-restricted page |
 | Shared | `*` | Not-found page |
 
-## Demo authentication
+## Authentication
 
-Current role handling is a frontend-only development mock, not production authentication.
+The frontend uses one shared Supabase client for signup, login, session restoration, token refresh,
+password recovery, and logout. Protected API requests send the Supabase access token as a Bearer
+token. FastAPI verifies the token signature through the configured JWKS endpoint plus issuer,
+audience, expiry, and subject claims; portfolio queries are scoped to that verified subject.
 
-| Role | Credential | Destination |
-| --- | --- | --- |
-| Admin | `admin@gmail.com` / `admin` | `/admin` |
-| Investor | Any valid-looking email with a non-empty password | `/app` |
-
-There is no email verification, OTP, real password reset, or backend-enforced authorization in the current demo flow. Replace mock auth with protected backend authentication before deployment.
+A deterministic local bypass exists for offline development only. It requires all three of
+`APP_ENV=development`, `LOCAL_DEVELOPMENT=true`, and `AUTH_BYPASS_ENABLED=true`. Staging and
+production reject the bypass during settings validation. See [deployment](docs/deployment.md).
 
 ## Available API endpoints
 
@@ -216,6 +221,7 @@ Base URL: `http://127.0.0.1:8000`
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/portfolios \
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name":"My Portfolio","currency":"INR"}'
 ```
@@ -224,6 +230,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/portfolios \
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/portfolios/PORTFOLIO_ID/holdings \
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"ticker":"TCS","quantity":20,"average_price":3500,"current_price":3600}'
 ```
@@ -232,6 +239,7 @@ curl -X POST http://127.0.0.1:8000/api/v1/portfolios/PORTFOLIO_ID/holdings \
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/portfolios/PORTFOLIO_ID/evaluate \
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"evaluation_date":"2026-09-16","trigger":"MANUAL"}'
 ```
@@ -240,7 +248,6 @@ curl -X POST http://127.0.0.1:8000/api/v1/portfolios/PORTFOLIO_ID/evaluate \
 
 The frontend intentionally does not fake results for unavailable backend capabilities:
 
-- Authentication, registration, reset-password, and role APIs
 - Admin users, metrics, evaluation-list, and audit-log APIs
 - Portfolio-list and full activity-history APIs
 - Target-allocation / optimizer / rebalance-proposal API
